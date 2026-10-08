@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Categorias</title>
+</head>
+<body>
+    <h1>Categorias</h1>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Tipo</th>
+        </tr>
+        {% for categoria in categorias %}
+        <tr>
+            <td>{{ categoria["id"] }}</td>
+            <td>{{ categoria["nome"] }}</td>
+            <td>{{ categoria["tipo"] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
