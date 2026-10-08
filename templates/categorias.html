@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Categorias</title>
-</head>
-<body>
-    <h1>Categorias</h1>
+{% extends "base.html" %}
+
+{% block titulo %}Categorias{% endblock %}
+
+{% block conteudo %}
+<h1>Categorias</h1>
 
     <table>
         <tr>
@@ -21,5 +19,6 @@
         </tr>
         {% endfor %}
     </table>
-</body>
-</html>
+
+{% endblock %}
+

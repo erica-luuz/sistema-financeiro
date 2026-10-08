@@ -5,7 +5,7 @@ app = Flask(__name__)   # cria a aplicação (o "servidor")
 
 @app.route("/")   # quando acessarem o endereço "/"...
 def dashboard():  # ...o Flask executa esta função...
-    return "Finanças da casa"   # ...e devolve este texto ao navegador
+    return render_template("dashboard.html")  # ..e devolve a página montada pelo template
 
 
 @app.route("/categorias")
@@ -15,8 +15,7 @@ def categorias():                                            # nome da função 
         "SELECT id, nome, tipo FROM categorias ORDER BY tipo, nome"   # ordenar por tipo e depois por nome
     ).fetchall()
     conn.close()                                        # fechar a conexão
-    return render_template("categorias.html", categorias=categorias)          # nome do arquivo do template
-
+    return render_template("categorias.html", categorias=categorias)          # mas agora a rota devolve uma página montada a partir de um template
 
 if __name__ == "__main__":
     app.run(debug=True)
