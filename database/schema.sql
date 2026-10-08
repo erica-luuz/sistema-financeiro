@@ -17,3 +17,21 @@ CREATE TABLE IF NOT EXISTS lancamentos (
     atualizado_em   TEXT          NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY   (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
 );
+
+-- Categorias iniciais.
+INSERT OR IGNORE INTO categorias (nome, tipo) VALUES
+('Salário',     'receita'),
+('Freelance',   'receita'),
+('Outros',      'receita'),
+('Alimentação', 'despesa'),
+('Moradia',     'despesa'),
+('Energia',     'despesa'),
+('Água',        'despesa'),
+('Internet',    'despesa'),
+('Transporte',  'despesa'),
+('Saúde',       'despesa'),
+('Educação',    'despesa'),
+('Lazer',       'despesa'),
+('Compras',     'despesa'),
+('Outros',      'despesa');
+
