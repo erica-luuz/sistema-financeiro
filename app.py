@@ -17,5 +17,16 @@ def categorias():                                            # nome da função 
     conn.close()                                        # fechar a conexão
     return render_template("categorias.html", categorias=categorias)          # mas agora a rota devolve uma página montada a partir de um template
 
+
+@app.route("/lancamentos/novo", methods=["GET", "POST"])
+def novo_lancamento():
+    conn = get_db_connection()
+    categorias = conn.execute(
+        "SELECT id, nome, tipo FROM categorias ORDER BY tipo, nome"
+    ).fetchall()
+    conn.close()
+    return render_template("novo_lancamento.html", categorias=categorias)
+
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block titulo %}Novo lançamento{% endblock %}
+
+{% block conteudo %}
+    <h1>Novo lançamento</h1>
+
+    <form method="post">
+        <p>
+            <label for="descricao">Descrição</label><br>
+            <input type="text" id="descricao" name="descricao" required>
+        </p>
+
+        <p>
+            <label for="valor">Valor (R$)</label><br>
+            <input type="number" id="valor" name="valor" step="0.01" min="0.01" required>
+        </p>
+
+        <p>
+            <label for="tipo">Tipo</label><br>
+            <select id="tipo" name="tipo" required>
+                <option value="despesa">Despesa</option>
+                <option value="receita">Receita</option>
+            </select>
+        </p>
+
+        <p>
+            <label for="data">Data</label><br>
+            <input type="date" id="data" name="data" required>
+        </p>
+
+        <p>
+            <label for="categoria_id">Categoria</label><br>
+            <select id="categoria_id" name="categoria_id" required>
+                                {% for categoria in categorias %}
+                <option value="{{ categoria["id"] }}">{{ categoria["nome"] }} ({{ categoria["tipo"] }})</option>
+                {% endfor %}
+
+            </select>
+        </p>
+
+        <p>
+            <label for="observacao">Observação</label><br>
+            <textarea id="observacao" name="observacao"></textarea>
+        </p>
+
+        <button type="submit">Salvar</button>
+    </form>
+{% endblock %}
