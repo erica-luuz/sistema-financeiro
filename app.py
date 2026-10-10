@@ -96,5 +96,14 @@ def novo_lancamento():
     return render_template("novo_lancamento.html", categorias=buscar_categorias())
 
 
+@app.route("/lancamentos/excluir/<int:lancamento_id>", methods=["POST"])
+def excluir_lancamento(lancamento_id):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM lancamentos WHERE id = ?", (lancamento_id,))  # o WHERE é essencial!
+    conn.commit()
+    conn.close()
+    return redirect(url_for("lancamentos"))
+
+
 if __name__ == "__main__":
     app.run(debug=True)

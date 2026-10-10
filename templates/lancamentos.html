@@ -15,6 +15,7 @@
             <th>Categoria</th>
             <th>Tipo</th>
             <th>Valor</th>
+            <th>Ações</th>
         </tr>
         {% for lancamento in lancamentos %}
         <tr>
@@ -23,6 +24,13 @@
             <td>{{ lancamento["categoria"] }}</td>
             <td>{{ lancamento["tipo"] }}</td>
             <td>{{ lancamento["valor_centavos"] | moeda }}</td>
+            <td>
+                <form method="post"
+                      action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
+                      onsubmit="return confirm('Excluir este lançamento?');">
+                    <button type="submit">Excluir</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </table>
