@@ -19,19 +19,25 @@ def data_br(data_iso):
     return f"{dia}/{mes}/{ano}"
 
 
+def buscar_categorias():
+    """Devolve todas as categorias, ordenadas por tipo e nome."""
+    conn = get_db_connection()
+    categorias = conn.execute(
+        "SELECT id, nome, tipo FROM categorias ORDER BY tipo, nome"
+    ).fetchall()
+    conn.close()
+    return categorias
+
+
 @app.route("/")   # quando acessarem o endereço "/"...
 def dashboard():  # ...o Flask executa esta função...
     return render_template("dashboard.html")  # ..e devolve a página montada pelo template
 
 
 @app.route("/categorias")
-def categorias():                                            # nome da função = nome da página
-    conn = get_db_connection()
-    categorias = conn.execute(
-        "SELECT id, nome, tipo FROM categorias ORDER BY tipo, nome"   # ordenar por tipo e depois por nome
-    ).fetchall()
-    conn.close()                                        # fechar a conexão
-    return render_template("categorias.html", categorias=categorias)          # mas agora a rota devolve uma página montada a partir de um template
+def categorias():
+    return render_template("categorias.html", categorias=buscar_categorias())
+
 
 @app.route("/lancamentos")
 def lancamentos():
@@ -50,7 +56,7 @@ def lancamentos():
 
 @app.route("/lancamentos/novo", methods=["GET", "POST"])
 def novo_lancamento():
-    # POST: o usuário clicou em "Salvar" → gravar no banco
+    # POST: o usuário clicou em "Salvar"
     if request.method == "POST":
         # Lê os campos do formulário (pelo "name" de cada campo no HTML)
         descricao = request.form["descricao"]
@@ -60,8 +66,21 @@ def novo_lancamento():
         categoria_id = request.form["categoria_id"]
         observacao = request.form["observacao"]
 
-        # Grava no banco. Os "?" protegem contra SQL Injection
         conn = get_db_connection()
+
+        # Regra de negócio: o tipo do lançamento deve ser igual ao tipo da categoria
+        categoria = conn.execute(
+            "SELECT tipo FROM categorias WHERE id = ?", (categoria_id,)
+        ).fetchone()
+
+        if categoria is None or categoria["tipo"] != tipo:
+            conn.close()
+            erro = "O tipo do lançamento não corresponde ao tipo da categoria."
+            return render_template(
+                "novo_lancamento.html", categorias=buscar_categorias(), erro=erro
+            )
+
+        # Grava no banco. Os "?" protegem contra SQL Injection
         conn.execute(
             "INSERT INTO lancamentos (descricao, valor_centavos, tipo, data, categoria_id, observacao) "
             "VALUES (?, ?, ?, ?, ?, ?)",
@@ -73,14 +92,8 @@ def novo_lancamento():
         # Manda o navegador para outra página (evita duplicar ao apertar F5)
         return redirect(url_for("lancamentos"))
 
-    # GET: mostrar o formulário vazio, com as categorias do banco
-    conn = get_db_connection()
-    categorias = conn.execute(
-        "SELECT id, nome, tipo FROM categorias ORDER BY tipo, nome"
-    ).fetchall()
-    conn.close()
-    return render_template("novo_lancamento.html", categorias=categorias)
-
+    # GET: mostrar o formulário vazio
+    return render_template("novo_lancamento.html", categorias=buscar_categorias())
 
 
 if __name__ == "__main__":

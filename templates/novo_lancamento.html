@@ -5,6 +5,10 @@
 {% block conteudo %}
     <h1>Novo lançamento</h1>
 
+    {% if erro %}
+    <p style="color: red;">{{ erro }}</p>
+    {% endif %}
+
     <form method="post">
         <p>
             <label for="descricao">Descrição</label><br>
