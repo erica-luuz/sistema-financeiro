@@ -25,7 +25,8 @@
             <td>{{ lancamento["tipo"] }}</td>
             <td>{{ lancamento["valor_centavos"] | moeda }}</td>
             <td>
-                <form method="post"
+                <a href="{{ url_for('editar_lancamento', lancamento_id=lancamento['id']) }}">Editar</a>
+                <form method="post" style="display: inline;"
                       action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
                       onsubmit="return confirm('Excluir este lançamento?');">
                     <button type="submit">Excluir</button>

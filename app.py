@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for  # traz a classe Flask do pacote flask
+from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
 
 app = Flask(__name__)   # cria a aplicação (o "servidor")
@@ -27,6 +27,14 @@ def buscar_categorias():
     ).fetchall()
     conn.close()
     return categorias
+
+
+def tipo_confere_com_categoria(conn, categoria_id, tipo):
+    """Regra de negócio: o tipo do lançamento deve ser igual ao tipo da categoria."""
+    categoria = conn.execute(
+        "SELECT tipo FROM categorias WHERE id = ?", (categoria_id,)
+    ).fetchone()
+    return categoria is not None and categoria["tipo"] == tipo
 
 
 @app.route("/")   # quando acessarem o endereço "/"...
@@ -68,12 +76,7 @@ def novo_lancamento():
 
         conn = get_db_connection()
 
-        # Regra de negócio: o tipo do lançamento deve ser igual ao tipo da categoria
-        categoria = conn.execute(
-            "SELECT tipo FROM categorias WHERE id = ?", (categoria_id,)
-        ).fetchone()
-
-        if categoria is None or categoria["tipo"] != tipo:
+        if not tipo_confere_com_categoria(conn, categoria_id, tipo):
             conn.close()
             erro = "O tipo do lançamento não corresponde ao tipo da categoria."
             return render_template(
@@ -94,6 +97,59 @@ def novo_lancamento():
 
     # GET: mostrar o formulário vazio
     return render_template("novo_lancamento.html", categorias=buscar_categorias())
+
+
+@app.route("/lancamentos/editar/<int:lancamento_id>", methods=["GET", "POST"])
+def editar_lancamento(lancamento_id):
+    conn = get_db_connection()
+    lancamento = conn.execute(
+        "SELECT * FROM lancamentos WHERE id = ?", (lancamento_id,)
+    ).fetchone()
+
+    # Se o id não existe (ex.: /lancamentos/editar/999), responde "Página não encontrada"
+    if lancamento is None:
+        conn.close()
+        abort(404)
+
+    # POST: o usuário clicou em "Salvar alterações"
+    if request.method == "POST":
+        descricao = request.form["descricao"]
+        valor_centavos = round(float(request.form["valor"]) * 100)
+        tipo = request.form["tipo"]
+        data = request.form["data"]
+        categoria_id = request.form["categoria_id"]
+        observacao = request.form["observacao"]
+
+        if not tipo_confere_com_categoria(conn, categoria_id, tipo):
+            conn.close()
+            erro = "O tipo do lançamento não corresponde ao tipo da categoria."
+            return render_template(
+                "editar_lancamento.html",
+                lancamento=lancamento,
+                categorias=buscar_categorias(),
+                erro=erro,
+            )
+
+        # Atualiza o lançamento. O WHERE garante que só ESTE lançamento muda
+        conn.execute(
+            """
+            UPDATE lancamentos
+               SET descricao = ?, valor_centavos = ?, tipo = ?, data = ?,
+                   categoria_id = ?, observacao = ?,
+                   atualizado_em = CURRENT_TIMESTAMP
+             WHERE id = ?
+            """,
+            (descricao, valor_centavos, tipo, data, categoria_id, observacao, lancamento_id),
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for("lancamentos"))
+
+    # GET: mostrar o formulário já preenchido com os dados atuais
+    conn.close()
+    return render_template(
+        "editar_lancamento.html", lancamento=lancamento, categorias=buscar_categorias()
+    )
 
 
 @app.route("/lancamentos/excluir/<int:lancamento_id>", methods=["POST"])
