@@ -1,10 +1,12 @@
 import calendar
 import csv
 import io
+import os
 import sqlite3
 import unicodedata
 from datetime import date
 
+from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
 from faturas import (
@@ -17,6 +19,23 @@ from faturas import (
 )
 
 app = Flask(__name__)   # cria a aplicação (o "servidor")
+
+# ---------- Configuração (Versão 3, seção 3) ----------
+# Segredos ficam no arquivo .env (fora do Git). O load_dotenv() lê esse arquivo e coloca
+# cada linha NOME=valor nas variáveis de ambiente, que o Python lê com os.environ.
+load_dotenv()
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if len(SECRET_KEY) < 32:
+    # Sem chave forte o app NÃO inicia: melhor falhar do que rodar inseguro
+    raise RuntimeError(
+        "Falta a SECRET_KEY no arquivo .env (ou ela é curta demais).\n"
+        "1. Copie o arquivo .env.exemplo para .env\n"
+        "2. Gere uma chave com:  python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+        "3. Cole o resultado depois de SECRET_KEY= no .env"
+    )
+# A SECRET_KEY assina o cookie de sessão: é o que impede alguém de forjar um login
+app.config["SECRET_KEY"] = SECRET_KEY
 
 
 @app.template_filter("moeda")
@@ -1590,4 +1609,6 @@ def preencher_orcamento_com_fixas():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Debug só quando o .env pedir (FLASK_DEBUG=1) — no servidor ele fica desligado,
+    # porque a página de erro do debug permite executar código Python no servidor
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
