@@ -9,6 +9,7 @@ from datetime import date
 from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from flask_wtf.csrf import CSRFError, CSRFProtect
+import relogio
 from db import get_db_connection
 from faturas import (
     data_fechamento,
@@ -86,6 +87,12 @@ def data_br(data_iso):
     """Converte '2026-10-09' em '09/10/2026'."""
     ano, mes, dia = data_iso.split("-")
     return f"{dia}/{mes}/{ano}"
+
+
+@app.template_filter("data_local")
+def data_local(texto_utc):
+    """Datas gravadas pelo banco (CURRENT_TIMESTAMP, em UTC) → '12/10/2026' em Brasília."""
+    return relogio.utc_para_local(texto_utc).strftime("%d/%m/%Y")
 
 
 MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -215,7 +222,7 @@ def validar_lancamento(conn, dados):
 
 def periodo_mes_atual():
     """Devolve o primeiro e o último dia do mês atual, no formato AAAA-MM-DD."""
-    hoje = date.today()
+    hoje = relogio.hoje()
     ultimo_dia = calendar.monthrange(hoje.year, hoje.month)[1]  # 28, 29, 30 ou 31
     inicio = hoje.replace(day=1)
     fim = hoje.replace(day=ultimo_dia)
@@ -286,7 +293,7 @@ def dashboard():
     ).fetchone()
 
     # Próxima fatura de cada cartão ativo, a partir de hoje
-    hoje = date.today()
+    hoje = relogio.hoje()
     proximas_faturas = []
     for cartao in buscar_cartoes():
         if not cartao["ativo"]:
@@ -582,7 +589,7 @@ def novo_lancamento():
         return redirect(url_for("lancamentos"))
 
     # GET: formulário vazio, já com a data de hoje e o tipo "despesa"
-    dados = {"tipo": "despesa", "data": date.today().isoformat(), "forma_pagamento": "pix"}
+    dados = {"tipo": "despesa", "data": relogio.hoje().isoformat(), "forma_pagamento": "pix"}
     return render_template("novo_lancamento.html", dados=dados, categorias=buscar_categorias())
 
 
@@ -853,7 +860,7 @@ def faturas_cartao(cartao_id):
         conn.close()
         abort(404)
 
-    hoje = date.today()
+    hoje = relogio.hoje()
     inicio_mes = hoje.replace(day=1).isoformat()
     mostrar_anteriores = request.args.get("anteriores") == "1"
 
@@ -1062,7 +1069,7 @@ def nova_compra():
 
     # GET: cartão pré-escolhido se veio da página de cartões (?cartao_id=...)
     dados = {
-        "data_compra": date.today().isoformat(),
+        "data_compra": relogio.hoje().isoformat(),
         "parcelas": "1",
         "cartao_id": request.args.get("cartao_id", ""),
     }
@@ -1161,7 +1168,7 @@ CAMPOS_RECORRENCIA = (
 
 
 def mes_atual():
-    return date.today().strftime("%Y-%m")   # '2026-10'
+    return relogio.mes_atual()   # '2026-10', no horário de Brasília
 
 
 def mes_valido(texto):

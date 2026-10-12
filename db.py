@@ -1,6 +1,7 @@
 import sqlite3
-from datetime import datetime
 from pathlib import Path
+
+import relogio
 
 CAMINHO_BANCO = "database.db"
 CAMINHO_SCHEMA = Path("database/schema.sql")
@@ -20,7 +21,7 @@ def fazer_backup():
     if not Path(CAMINHO_BANCO).exists():
         return None
     PASTA_BACKUPS.mkdir(exist_ok=True)
-    destino = PASTA_BACKUPS / f"database_{datetime.now():%Y-%m-%d_%H%M%S}.db"
+    destino = PASTA_BACKUPS / f"database_{relogio.agora():%Y-%m-%d_%H%M%S}.db"
 
     # A função backup() do sqlite3 copia o banco com segurança, mesmo se ele estiver em uso
     origem = sqlite3.connect(CAMINHO_BANCO)

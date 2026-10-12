@@ -6,7 +6,7 @@
     <div class="cabecalho-pagina">
         <div>
             <h1>Editar lançamento</h1>
-            <p class="subtitulo">Cadastrado em {{ lancamento["criado_em"][:10] | data_br }}</p>
+            <p class="subtitulo">Cadastrado em {{ lancamento["criado_em"] | data_local }}</p>
         </div>
     </div>
 
