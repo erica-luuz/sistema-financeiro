@@ -123,6 +123,17 @@ a { color: var(--azulejo); }
     border-left: 1px solid var(--linha);
 }
 
+/* Agrupa links e usuário; no computador fica tudo numa linha, como antes */
+.menu-conteudo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+}
+
+/* Botões que só existem no celular */
+.botao-menu, .botao-rapido { display: none; }
+
 /* Tela de login */
 .caixa-login { max-width: 400px; margin: 2rem auto 0; }
 .caixa-login h1 { margin-bottom: 0.25rem; }
@@ -481,5 +492,21 @@ tbody tr:hover { background: var(--cal); }
     .cartao-saldo { grid-column: 1 / -1; }
     .duas-colunas { grid-template-columns: 1fr; }
     .campos-lado-a-lado { grid-template-columns: 1fr; }
-    .menu-links { width: 100%; }
+
+    /* Menu no celular: marca + "+" + "☰ Menu"; a lista abre em coluna, com itens grandes para o dedo */
+    .menu { gap: 0.5rem; }
+    .botao-rapido { display: inline-block; padding: 0.4rem 0.9rem; font-size: 1.2rem; line-height: 1.2; }
+    .botao-menu { display: inline-block; }
+    .tem-js .menu-conteudo { display: none; }
+    .menu-aberto .menu-conteudo { display: flex; }
+    .menu-conteudo { flex-direction: column; align-items: stretch; width: 100%; gap: 0.5rem; }
+    .menu-links { flex-direction: column; align-items: stretch; }
+    .menu-links a:not(.botao) { padding: 0.75rem; }
+    .menu-links .botao-primario { display: none; }   /* já existe o atalho "+" no topo */
+    .menu-usuario {
+        border-left: none;
+        border-top: 1px solid var(--linha);
+        padding: 0.75rem 0 0;
+        justify-content: space-between;
+    }
 }

@@ -15,11 +15,19 @@
 <body>
     <header>
         <div class="faixa-azulejo" aria-hidden="true"></div>
-        <nav class="menu">
+        <nav class="menu" id="menu">
             <a class="marca" href="{{ url_for('dashboard.inicio') }}">Finanças da Casa</a>
 
             {# O menu só aparece para quem está logado (g.usuario vem do auth.py) #}
             {% if g.usuario %}
+            {# No celular: atalho "+" (novo lançamento) e o botão que abre/fecha o menu #}
+            <a class="botao botao-primario botao-rapido" href="{{ url_for('lancamentos.novo') }}"
+               aria-label="Novo lançamento" title="Novo lançamento">+</a>
+            <button type="button" class="botao botao-menu" aria-expanded="false" aria-controls="menu-conteudo">
+                ☰ Menu
+            </button>
+
+            <div class="menu-conteudo" id="menu-conteudo">
             {# request.blueprint = de qual módulo é a página atual; serve para destacar o item do menu #}
             {% set modulo = request.blueprint %}
             <div class="menu-links">
@@ -46,9 +54,22 @@
                     <button type="submit" class="acao">Sair</button>
                 </form>
             </div>
+            </div>
             {% endif %}
         </nav>
     </header>
+    <script>
+        // Celular: o botão "☰ Menu" abre e fecha a lista. aria-expanded avisa leitores de tela
+        // se o menu está aberto. (Sem JavaScript o menu simplesmente fica sempre aberto.)
+        document.documentElement.classList.add("tem-js");
+        const botaoMenu = document.querySelector(".botao-menu");
+        if (botaoMenu) {
+            botaoMenu.addEventListener("click", () => {
+                const aberto = document.getElementById("menu").classList.toggle("menu-aberto");
+                botaoMenu.setAttribute("aria-expanded", aberto);
+            });
+        }
+    </script>
 
     <main class="conteudo">
         {# Mensagens "flash": aparecem uma vez, depois de uma ação (ex.: "Senha alterada") #}
