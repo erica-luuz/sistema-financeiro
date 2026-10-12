@@ -3,22 +3,34 @@
 {% block titulo %}Categorias{% endblock %}
 
 {% block conteudo %}
-<h1>Categorias</h1>
+    <h1>Categorias</h1>
+
+    <p><a href="{{ url_for('nova_categoria') }}">+ Nova categoria</a></p>
+
+    {% if erro %}
+    <p style="color: red;">{{ erro }}</p>
+    {% endif %}
 
     <table>
         <tr>
-            <th>ID</th>
             <th>Nome</th>
             <th>Tipo</th>
+            <th>Lançamentos</th>
+            <th>Ações</th>
         </tr>
         {% for categoria in categorias %}
         <tr>
-            <td>{{ categoria["id"] }}</td>
             <td>{{ categoria["nome"] }}</td>
             <td>{{ categoria["tipo"] }}</td>
+            <td>{{ categoria["qtd_lancamentos"] }}</td>
+            <td>
+                <form method="post" style="display: inline;"
+                      action="{{ url_for('excluir_categoria', categoria_id=categoria['id']) }}"
+                      onsubmit="return confirm('Excluir esta categoria?');">
+                    <button type="submit">Excluir</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </table>
-
 {% endblock %}
-

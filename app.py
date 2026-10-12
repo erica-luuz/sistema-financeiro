@@ -1,3 +1,5 @@
+import sqlite3
+
 from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
 
@@ -29,6 +31,22 @@ def buscar_categorias():
     return categorias
 
 
+def buscar_categorias_com_uso():
+    """Devolve as categorias com a quantidade de lançamentos que usam cada uma."""
+    conn = get_db_connection()
+    categorias = conn.execute(
+        """
+        SELECT c.id, c.nome, c.tipo, COUNT(l.id) AS qtd_lancamentos
+        FROM categorias c
+        LEFT JOIN lancamentos l ON l.categoria_id = c.id
+        GROUP BY c.id
+        ORDER BY c.tipo, c.nome
+        """
+    ).fetchall()
+    conn.close()
+    return categorias
+
+
 def tipo_confere_com_categoria(conn, categoria_id, tipo):
     """Regra de negócio: o tipo do lançamento deve ser igual ao tipo da categoria."""
     categoria = conn.execute(
@@ -44,7 +62,65 @@ def dashboard():  # ...o Flask executa esta função...
 
 @app.route("/categorias")
 def categorias():
-    return render_template("categorias.html", categorias=buscar_categorias())
+    return render_template("categorias.html", categorias=buscar_categorias_com_uso())
+
+
+@app.route("/categorias/nova", methods=["GET", "POST"])
+def nova_categoria():
+    if request.method == "POST":
+        nome = request.form["nome"].strip()  # strip() tira espaços do começo e do fim
+        tipo = request.form["tipo"]
+
+        if not nome:
+            return render_template("nova_categoria.html", erro="Informe o nome da categoria.")
+        if tipo not in ("receita", "despesa"):
+            return render_template("nova_categoria.html", erro="Tipo inválido.")
+
+        conn = get_db_connection()
+        try:
+            conn.execute("INSERT INTO categorias (nome, tipo) VALUES (?, ?)", (nome, tipo))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            # O UNIQUE (nome, tipo) do schema recusou: essa categoria já existe
+            erro = f"Já existe uma categoria '{nome}' do tipo {tipo}."
+            return render_template("nova_categoria.html", erro=erro)
+        finally:
+            conn.close()  # o finally roda sempre: com ou sem erro
+
+        return redirect(url_for("categorias"))
+
+    return render_template("nova_categoria.html")
+
+
+@app.route("/categorias/excluir/<int:categoria_id>", methods=["POST"])
+def excluir_categoria(categoria_id):
+    conn = get_db_connection()
+
+    # Regra de negócio: categorias em uso não podem ser excluídas
+    qtd = conn.execute(
+        "SELECT COUNT(*) FROM lancamentos WHERE categoria_id = ?", (categoria_id,)
+    ).fetchone()[0]
+
+    if qtd > 0:
+        conn.close()
+        erro = f"Esta categoria não pode ser excluída: ela é usada em {qtd} lançamento(s)."
+        return render_template(
+            "categorias.html", categorias=buscar_categorias_com_uso(), erro=erro
+        )
+
+    try:
+        conn.execute("DELETE FROM categorias WHERE id = ?", (categoria_id,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # Segunda garantia: o ON DELETE RESTRICT do banco também recusa
+        erro = "Esta categoria não pode ser excluída: ela está em uso."
+        return render_template(
+            "categorias.html", categorias=buscar_categorias_com_uso(), erro=erro
+        )
+    finally:
+        conn.close()
+
+    return redirect(url_for("categorias"))
 
 
 @app.route("/lancamentos")
