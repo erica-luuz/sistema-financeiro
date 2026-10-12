@@ -1,9 +1,11 @@
 import calendar
+import csv
+import io
 import sqlite3
 import unicodedata
 from datetime import date
 
-from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
+from flask import Flask, Response, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
 from faturas import data_fechamento, gerar_parcelas, proximo_vencimento, situacao_fatura, somar_meses
 
@@ -363,8 +365,9 @@ def excluir_categoria(categoria_id):
     return redirect(url_for("categorias"))
 
 
-@app.route("/lancamentos")
-def lancamentos():
+def buscar_lancamentos_filtrados():
+    """Lê os filtros da URL e busca os lançamentos. Usada pela lista E pela exportação,
+    para o arquivo baixado ter exatamente o que está na tela. Devolve (filtros, filtrando, lançamentos)."""
     # Filtros vindos do formulário (GET). Campo vazio = sem filtro
     filtros = {
         "inicio": request.args.get("inicio", ""),
@@ -403,7 +406,7 @@ def lancamentos():
         f"""
         SELECT l.id, l.descricao, l.valor_centavos, l.tipo, l.data, l.forma_pagamento,
                l.data_compra, l.compra_id, l.parcela_numero, l.parcela_total, l.recorrencia_id,
-               c.nome AS categoria, ca.nome AS cartao, ca.titular
+               l.observacao, c.nome AS categoria, ca.nome AS cartao, ca.titular
         FROM lancamentos l
         JOIN categorias c ON c.id = l.categoria_id
         LEFT JOIN compras_cartao cc ON cc.id = l.compra_id      -- LEFT: nem todo lançamento é compra
@@ -414,6 +417,12 @@ def lancamentos():
         parametros,
     ).fetchall()
     conn.close()
+    return filtros, bool(condicoes), lancamentos
+
+
+@app.route("/lancamentos")
+def lancamentos():
+    filtros, filtrando, lancamentos = buscar_lancamentos_filtrados()
 
     # Totais do resultado filtrado (em centavos inteiros)
     total_receitas = sum(l["valor_centavos"] for l in lancamentos if l["tipo"] == "receita")
@@ -424,9 +433,55 @@ def lancamentos():
         lancamentos=lancamentos,
         categorias=buscar_categorias(),
         filtros=filtros,
-        filtrando=bool(condicoes),
+        filtrando=filtrando,
         total_receitas=total_receitas,
         total_despesas=total_despesas,
+    )
+
+
+def numero_br(centavos):
+    """25050 → '250,50' (sem 'R$' e sem ponto de milhar: o Excel entende como número)."""
+    return f"{centavos / 100:.2f}".replace(".", ",")
+
+
+@app.route("/lancamentos/exportar.csv")
+def exportar_lancamentos():
+    filtros, filtrando, lancamentos = buscar_lancamentos_filtrados()
+
+    # Monta o arquivo na memória (StringIO = um "arquivo" que é só um texto)
+    saida = io.StringIO()
+    # Excel em português: separador ";" (porque a vírgula é o separador decimal)
+    escritor = csv.writer(saida, delimiter=";")
+    escritor.writerow([
+        "Data", "Descrição", "Parcela", "Categoria", "Tipo", "Forma de pagamento",
+        "Cartão", "Titular", "Data da compra", "Valor", "Observação",
+    ])
+    for l in lancamentos:
+        valor = l["valor_centavos"] if l["tipo"] == "receita" else -l["valor_centavos"]  # despesa negativa: dá para somar a coluna
+        escritor.writerow([
+            data_br(l["data"]),
+            l["descricao"],
+            f"{l['parcela_numero']}/{l['parcela_total']}" if l["parcela_total"] and l["parcela_total"] > 1 else "",
+            l["categoria"],
+            l["tipo"].capitalize(),
+            forma(l["forma_pagamento"]),
+            l["cartao"] or "",
+            l["titular"] or "",
+            data_br(l["data_compra"]) if l["data_compra"] else "",
+            numero_br(valor),
+            l["observacao"] or "",
+        ])
+
+    # Nome do arquivo com o período, quando houver: lancamentos_2026-10-01_a_2026-10-31.csv
+    nome = "lancamentos"
+    if filtros["inicio"] or filtros["fim"]:
+        nome += f"_{filtros['inicio'] or 'inicio'}_a_{filtros['fim'] or 'hoje'}"
+
+    return Response(
+        # utf-8-sig = UTF-8 com BOM: a "marca" que faz o Excel abrir os acentos corretamente
+        saida.getvalue().encode("utf-8-sig"),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{nome}.csv"'},  # baixar, não abrir
     )
 
 

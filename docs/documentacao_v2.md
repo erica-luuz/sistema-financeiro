@@ -411,6 +411,9 @@ CREATE TABLE orcamentos (
 
 ## Histórico de revisões
 
+### v2.6 — 12/10/2026 — Versão 2 concluída
+- Exportar CSV implementado: botão "Exportar para Excel" na lista, respeitando os filtros; separador `;`, vírgula decimal, datas DD/MM/AAAA, UTF-8 com BOM; despesas saem com valor negativo para a coluna poder ser somada no Excel.
+
 ### v2.5 — 12/10/2026
 - Gráficos: só a evolução **receitas × despesas dos últimos 6 meses** (colunas, Chart.js). A rosca de despesas por categoria foi descartada: as barras horizontais que o dashboard já tem comparam melhor e mostram a mesma informação.
 - Cores do gráfico validadas para daltonismo: azul `#1d4e9e` (receitas) × laranja `#eb6834` (despesas). Verde × vermelho falhou (ΔE 6,1 para deuteranopia).

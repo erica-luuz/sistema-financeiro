@@ -40,9 +40,9 @@
             <label for="categoria_id">Categoria</label>
             <select id="categoria_id" name="categoria_id" required>
                 {% for categoria in categorias %}
-                <option value="{{ categoria['id'] }}"
+                <option value="{{ categoria['id'] }}" data-tipo="{{ categoria['tipo'] }}"
                         {% if dados.get('categoria_id') == categoria['id'] | string %}selected{% endif %}>
-                    {{ categoria['nome'] }} ({{ categoria['tipo'] }})
+                    {{ categoria['nome'] }}
                 </option>
                 {% endfor %}
             </select>
@@ -72,3 +72,6 @@
         <a href="{{ url_for('lancamentos') }}">Cancelar</a>
     </div>
 </form>
+
+<script src="{{ url_for('static', filename='js/categorias.js') }}"></script>
+<script>filtrarCategoriasPorTipo("tipo", "categoria_id");</script>

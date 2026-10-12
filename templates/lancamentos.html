@@ -5,7 +5,12 @@
 {% block conteudo %}
     <div class="cabecalho-pagina">
         <h1>Lançamentos</h1>
-        <a class="botao" href="{{ url_for('nova_compra') }}">+ Compra no cartão</a>
+        <div class="botoes-filtro">
+            {# **request.args repassa os filtros da tela para o arquivo exportado #}
+            <a class="botao" href="{{ url_for('exportar_lancamentos', **request.args) }}"
+               title="Baixa os lançamentos filtrados num arquivo que abre no Excel">Exportar para Excel</a>
+            <a class="botao" href="{{ url_for('nova_compra') }}">+ Compra no cartão</a>
+        </div>
     </div>
 
     <!-- Filtros: GET, porque só consultam -->
