@@ -37,6 +37,13 @@ if len(SECRET_KEY) < 32:
 # A SECRET_KEY assina o cookie de sessão: é o que impede alguém de forjar um login
 app.config["SECRET_KEY"] = SECRET_KEY
 
+# ---------- Login (Versão 3, seção 4) ----------
+# As rotas de login/logout e a regra "toda página exige login" ficam em auth.py
+from auth import DURACAO_SESSAO, bp as auth_bp  # noqa: E402  (precisa vir depois da configuração)
+
+app.config["PERMANENT_SESSION_LIFETIME"] = DURACAO_SESSAO
+app.register_blueprint(auth_bp)
+
 
 @app.template_filter("moeda")
 def moeda(centavos):

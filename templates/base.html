@@ -18,6 +18,8 @@
         <nav class="menu">
             <a class="marca" href="{{ url_for('dashboard') }}">Finanças da Casa</a>
 
+            {# O menu só aparece para quem está logado (g.usuario vem do auth.py) #}
+            {% if g.usuario %}
             {# request.endpoint = nome da função da rota atual; serve para destacar o item do menu #}
             {% set pagina = request.endpoint %}
             <div class="menu-links">
@@ -35,6 +37,14 @@
                    class="{{ 'ativo' if pagina in ['categorias', 'nova_categoria'] }}">Categorias</a>
                 <a class="botao botao-primario" href="{{ url_for('novo_lancamento') }}">+ Novo lançamento</a>
             </div>
+            <div class="menu-usuario">
+                <span>{{ g.usuario["nome"] }}</span>
+                {# Sair é POST: um link GET poderia ser disparado sem querer (pré-carregamento, imagem...) #}
+                <form method="post" action="{{ url_for('auth.logout') }}" class="form-inline">
+                    <button type="submit" class="acao">Sair</button>
+                </form>
+            </div>
+            {% endif %}
         </nav>
     </header>
 

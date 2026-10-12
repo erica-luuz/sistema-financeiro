@@ -113,6 +113,22 @@ a { color: var(--azulejo); }
 .menu-links a:not(.botao):hover { color: var(--noite); background: var(--cal); }
 .menu-links a.ativo { color: var(--azulejo); background: var(--azulejo-claro); }
 
+.menu-usuario {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--cinza);
+    font-size: 0.9rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--linha);
+}
+
+/* Tela de login */
+.caixa-login { max-width: 400px; margin: 2rem auto 0; }
+.caixa-login h1 { margin-bottom: 0.25rem; }
+.caixa-login .subtitulo { margin-bottom: 1.25rem; }
+.botao-largo { width: 100%; margin-top: 0.5rem; }
+
 /* ---------- Conteúdo ---------- */
 
 .conteudo {
