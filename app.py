@@ -457,5 +457,170 @@ def excluir_lancamento(lancamento_id):
     return redirect(url_for("lancamentos"))
 
 
+# ---------- Cartões de crédito ----------
+
+def ler_formulario_cartao():
+    """Lê os campos do cartão como textos. Se der erro, eles voltam para a tela."""
+    return {
+        "nome": request.form.get("nome", "").strip(),
+        "titular": request.form.get("titular", "").strip(),
+        "dia_fechamento": request.form.get("dia_fechamento", "").strip(),
+        "dia_vencimento": request.form.get("dia_vencimento", "").strip(),
+        "limite": request.form.get("limite", "").strip(),
+        "ativo": "1" if request.form.get("ativo") else "0",  # checkbox desmarcado não é enviado
+    }
+
+
+def dados_do_cartao(cartao):
+    """Converte uma linha do banco nos textos que o formulário espera."""
+    limite = cartao["limite_centavos"]
+    return {
+        "nome": cartao["nome"],
+        "titular": cartao["titular"],
+        "dia_fechamento": str(cartao["dia_fechamento"]),
+        "dia_vencimento": str(cartao["dia_vencimento"]),
+        "limite": f"{limite / 100:.2f}" if limite else "",
+        "ativo": str(cartao["ativo"]),
+    }
+
+
+def validar_cartao(dados):
+    """Devolve a mensagem de erro, ou None se estiver tudo certo."""
+    if not dados["nome"]:
+        return "Informe o nome do cartão."
+    if not dados["titular"]:
+        return "Informe o titular do cartão."
+    for campo, rotulo in (("dia_fechamento", "fechamento"), ("dia_vencimento", "vencimento")):
+        if not dados[campo].isdigit() or not 1 <= int(dados[campo]) <= 28:
+            return f"O dia de {rotulo} deve ser um número de 1 a 28."
+    if dados["limite"]:
+        try:
+            if para_centavos(dados["limite"]) <= 0:
+                return "O limite deve ser maior que zero (ou deixe em branco)."
+        except (ValueError, OverflowError):
+            return "Informe um limite válido, por exemplo 5000,00 (ou deixe em branco)."
+    return None
+
+
+def valores_cartao(dados):
+    """Os valores, já convertidos, na ordem das colunas do banco."""
+    return (
+        dados["nome"],
+        dados["titular"],
+        int(dados["dia_fechamento"]),
+        int(dados["dia_vencimento"]),
+        para_centavos(dados["limite"]) if dados["limite"] else None,
+        int(dados["ativo"]),
+    )
+
+
+def cartao_repetido(dados):
+    return f"{dados['titular']} já tem um cartão chamado '{dados['nome']}'. Use outro nome."
+
+
+def buscar_titulares():
+    """Os titulares já cadastrados, para sugerir no formulário (ex.: ['Érica', 'Heberton'])."""
+    conn = get_db_connection()
+    linhas = conn.execute("SELECT DISTINCT titular FROM cartoes").fetchall()
+    conn.close()
+    return sorted((linha["titular"] for linha in linhas), key=sem_acento)
+
+
+def buscar_cartoes():
+    """Todos os cartões: ativos primeiro, agrupados por titular (ordem sem acento: Érica antes de Heberton)."""
+    conn = get_db_connection()
+    lista = conn.execute("SELECT * FROM cartoes").fetchall()
+    conn.close()
+    return sorted(lista, key=lambda c: (-c["ativo"], sem_acento(c["titular"]), sem_acento(c["nome"])))
+
+
+@app.route("/cartoes")
+def cartoes():
+    return render_template("cartoes.html", cartoes=buscar_cartoes())
+
+
+@app.route("/cartoes/novo", methods=["GET", "POST"])
+def novo_cartao():
+    if request.method == "POST":
+        dados = ler_formulario_cartao()
+        dados["ativo"] = "1"  # cartão novo sempre começa ativo
+        erro = validar_cartao(dados)
+        if not erro:
+            conn = get_db_connection()
+            try:
+                conn.execute(
+                    "INSERT INTO cartoes "
+                    "(nome, titular, dia_fechamento, dia_vencimento, limite_centavos, ativo) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    valores_cartao(dados),
+                )
+                conn.commit()
+                return redirect(url_for("cartoes"))
+            except sqlite3.IntegrityError:
+                erro = cartao_repetido(dados)
+            finally:
+                conn.close()
+        return render_template(
+            "cartao_form.html", titulo="Novo cartão", dados=dados, erro=erro,
+            titulares=buscar_titulares(),
+        )
+
+    return render_template(
+        "cartao_form.html", titulo="Novo cartão", dados={"ativo": "1"},
+        titulares=buscar_titulares(),
+    )
+
+
+@app.route("/cartoes/editar/<int:cartao_id>", methods=["GET", "POST"])
+def editar_cartao(cartao_id):
+    conn = get_db_connection()
+    cartao = conn.execute("SELECT * FROM cartoes WHERE id = ?", (cartao_id,)).fetchone()
+    if cartao is None:
+        conn.close()
+        abort(404)
+
+    if request.method == "POST":
+        dados = ler_formulario_cartao()
+        erro = validar_cartao(dados)
+        if not erro:
+            try:
+                conn.execute(
+                    "UPDATE cartoes SET nome = ?, titular = ?, dia_fechamento = ?, "
+                    "dia_vencimento = ?, limite_centavos = ?, ativo = ? WHERE id = ?",
+                    (*valores_cartao(dados), cartao_id),  # * "espalha" a tupla dentro da outra
+                )
+                conn.commit()
+                conn.close()
+                return redirect(url_for("cartoes"))
+            except sqlite3.IntegrityError:
+                erro = cartao_repetido(dados)
+        conn.close()
+        return render_template(
+            "cartao_form.html", titulo="Editar cartão", cartao=cartao, dados=dados, erro=erro,
+            titulares=buscar_titulares(),
+        )
+
+    conn.close()
+    return render_template(
+        "cartao_form.html", titulo="Editar cartão", cartao=cartao,
+        dados=dados_do_cartao(cartao), titulares=buscar_titulares(),
+    )
+
+
+@app.route("/cartoes/excluir/<int:cartao_id>", methods=["POST"])
+def excluir_cartao(cartao_id):
+    conn = get_db_connection()
+    try:
+        conn.execute("DELETE FROM cartoes WHERE id = ?", (cartao_id,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # A partir da Etapa 12, o ON DELETE RESTRICT das compras impede excluir cartão usado
+        erro = "Este cartão tem compras e não pode ser excluído. Desative-o em Editar."
+        return render_template("cartoes.html", cartoes=buscar_cartoes(), erro=erro)
+    finally:
+        conn.close()
+    return redirect(url_for("cartoes"))
+
+
 if __name__ == "__main__":
     app.run(debug=True)

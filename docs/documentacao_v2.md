@@ -64,8 +64,9 @@ database/
 └── migracoes/
     ├── 001_forma_pagamento.sql
     ├── 002_cartoes.sql
-    ├── 003_recorrencias.sql
-    └── 004_orcamentos.sql
+    ├── 003_compras_cartao.sql
+    ├── 004_recorrencias.sql
+    └── 005_orcamentos.sql
 ```
 
 O SQLite tem um número guardado dentro do próprio arquivo do banco, o **`PRAGMA user_version`** (começa em 0). A função `init_db()`:
@@ -110,7 +111,8 @@ Novo campo no lançamento: **`forma_pagamento`**.
 
 | Campo | Exemplo | Regra |
 |---|---|---|
-| Nome | "Nubank", "Itaú Visa" | Obrigatório, único |
+| Nome | "Nubank", "Itaú Visa" | Obrigatório |
+| Titular | "Érica", "Heberton" | Obrigatório — quem da casa é dono do cartão. Nome + titular é único (cada um pode ter um "Nubank") |
 | Dia de fechamento | 3 | Entre 1 e 28 |
 | Dia de vencimento | 10 | Entre 1 e 28 |
 | Limite | R$ 5.000,00 | Opcional, em centavos |
@@ -260,17 +262,22 @@ ALTER TABLE lancamentos ADD COLUMN forma_pagamento TEXT NOT NULL DEFAULT 'pix'
     CHECK (forma_pagamento IN ('pix', 'debito', 'credito', 'dinheiro', 'boleto', 'transferencia'));
 ```
 
-### Migração 002 — cartões e compras
+### Migração 002 — cartões
 ```sql
 CREATE TABLE cartoes (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome            TEXT    NOT NULL UNIQUE,
+    nome            TEXT    NOT NULL,
+    titular         TEXT    NOT NULL,
     dia_fechamento  INTEGER NOT NULL CHECK (dia_fechamento BETWEEN 1 AND 28),
     dia_vencimento  INTEGER NOT NULL CHECK (dia_vencimento BETWEEN 1 AND 28),
     limite_centavos INTEGER CHECK (limite_centavos IS NULL OR limite_centavos > 0),
-    ativo           INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1))
+    ativo           INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1)),
+    UNIQUE (nome, titular)
 );
+```
 
+### Migração 003 — compras no cartão
+```sql
 CREATE TABLE compras_cartao (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     cartao_id            INTEGER NOT NULL REFERENCES cartoes(id) ON DELETE RESTRICT,
@@ -289,7 +296,7 @@ ALTER TABLE lancamentos ADD COLUMN parcela_numero INTEGER;
 ALTER TABLE lancamentos ADD COLUMN parcela_total INTEGER;
 ```
 
-### Migração 003 — recorrências
+### Migração 004 — recorrências
 ```sql
 CREATE TABLE recorrencias (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -310,7 +317,7 @@ ALTER TABLE lancamentos ADD COLUMN mes_referencia TEXT;   -- AAAA-MM
 CREATE UNIQUE INDEX idx_lancamento_recorrencia_mes ON lancamentos (recorrencia_id, mes_referencia);
 ```
 
-### Migração 004 — orçamentos
+### Migração 005 — orçamentos
 ```sql
 CREATE TABLE orcamentos (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -370,11 +377,11 @@ CREATE TABLE orcamentos (
 |---|---|---|
 | 9 | Migrações | `PRAGMA user_version`, pasta `migracoes/`, backup automático |
 | 10 | Forma de pagamento | Migração 001, campo no formulário, filtro e coluna na lista |
-| 11 | Cartões | Migração 002 (parte), cadastro de cartões |
-| 12 | Compras no crédito | Cálculo da fatura, parcelas, `compras_cartao` |
+| 11 | Cartões | Migração 002, cadastro de cartões |
+| 12 | Compras no crédito | Migração 003, cálculo da fatura, parcelas, `compras_cartao` |
 | 13 | Faturas | Página de faturas e limite usado |
-| 14 | Recorrências | Migração 003, cadastro, geração sem duplicar |
-| 15 | Orçamento | Migração 004, definir/copiar, barras no dashboard |
+| 14 | Recorrências | Migração 004, cadastro, geração sem duplicar |
+| 15 | Orçamento | Migração 005, definir/copiar, barras no dashboard |
 | 16 | Gráficos | Chart.js no dashboard |
 | 17 | Exportar | CSV com os filtros aplicados |
 
@@ -403,6 +410,11 @@ CREATE TABLE orcamentos (
 ---
 
 ## Histórico de revisões
+
+### v2.1 — 12/10/2026
+- Migrações separadas por etapa: 002 só cartões, 003 compras no cartão; recorrências viram 004 e orçamentos 005.
+- Cartões ganham **titular** (a casa tem cartões da Érica e do Heberton); unicidade passa a ser nome + titular.
+- Forma de pagamento "crédito" fica fora do formulário comum até existirem as compras no cartão (Etapa 12).
 
 ### v2.0 — 11/10/2026
 - Planejamento inicial da Versão 2.

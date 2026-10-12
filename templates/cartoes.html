@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block titulo %}Cartões{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <h1>Cartões de crédito</h1>
+        <a class="botao" href="{{ url_for('novo_cartao') }}">+ Novo cartão</a>
+    </div>
+
+    {% if erro %}
+    <p class="alerta">{{ erro }}</p>
+    {% endif %}
+
+    {% if cartoes %}
+    <div class="painel tabela-rolagem">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cartão</th>
+                    <th>Titular</th>
+                    <th class="num">Fecha dia</th>
+                    <th class="num">Vence dia</th>
+                    <th>Melhor dia de compra</th>
+                    <th class="num">Limite</th>
+                    <th class="num">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cartao in cartoes %}
+                <tr>
+                    <td>
+                        {{ cartao["nome"] }}
+                        {% if not cartao["ativo"] %}<span class="selo selo-inativo">Inativo</span>{% endif %}
+                    </td>
+                    <td>{{ cartao["titular"] }}</td>
+                    <td class="num valor">{{ cartao["dia_fechamento"] }}</td>
+                    <td class="num valor">{{ cartao["dia_vencimento"] }}</td>
+                    <td>
+                        {# Compras a partir do fechamento só entram na fatura seguinte: mais tempo para pagar #}
+                        Dia {{ cartao["dia_fechamento"] }}
+                    </td>
+                    <td class="num valor">
+                        {{ cartao["limite_centavos"] | moeda if cartao["limite_centavos"] else "—" }}
+                    </td>
+                    <td class="num">
+                        <a class="acao" href="{{ url_for('editar_cartao', cartao_id=cartao['id']) }}">Editar</a>
+                        <form method="post" class="form-inline"
+                              action="{{ url_for('excluir_cartao', cartao_id=cartao['id']) }}"
+                              onsubmit="return confirm('Excluir este cartão?');">
+                            <button type="submit" class="acao acao-perigo">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="vazio">
+        Nenhum cartão cadastrado.<br>
+        <a href="{{ url_for('novo_cartao') }}">Cadastrar o primeiro cartão</a>
+    </p>
+    {% endif %}
+{% endblock %}

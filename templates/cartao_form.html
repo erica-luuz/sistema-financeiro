@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <h1>{{ titulo }}</h1>
+    </div>
+
+    {% if erro %}
+    <p class="alerta">{{ erro }}</p>
+    {% endif %}
+
+    <form method="post" class="painel formulario">
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="nome">Nome do cartão</label>
+                <input type="text" id="nome" name="nome" value="{{ dados.get('nome', '') }}"
+                       placeholder="Ex.: Nubank" required>
+            </div>
+            <div class="campo">
+                <label for="titular">Titular</label>
+                {# datalist: sugere os titulares já cadastrados, mas aceita um nome novo #}
+                <input type="text" id="titular" name="titular" list="lista-titulares"
+                       value="{{ dados.get('titular', '') }}" placeholder="De quem é o cartão" required>
+                <datalist id="lista-titulares">
+                    {% for titular in titulares %}
+                    <option value="{{ titular }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="dia_fechamento">Dia do fechamento</label>
+                <input type="number" id="dia_fechamento" name="dia_fechamento" min="1" max="28"
+                       value="{{ dados.get('dia_fechamento', '') }}" required>
+            </div>
+            <div class="campo">
+                <label for="dia_vencimento">Dia do vencimento</label>
+                <input type="number" id="dia_vencimento" name="dia_vencimento" min="1" max="28"
+                       value="{{ dados.get('dia_vencimento', '') }}" required>
+            </div>
+        </div>
+        <p class="ajuda">
+            Estão na fatura do cartão ou no app do banco. Compras feitas no dia do fechamento
+            ou depois entram na fatura seguinte. Dias de 1 a 28.
+        </p>
+
+        <div class="campo">
+            <label for="limite">Limite (R$, opcional)</label>
+            <input type="number" id="limite" name="limite" step="0.01" min="0.01"
+                   value="{{ dados.get('limite', '') }}" placeholder="0,00">
+        </div>
+
+        {% if cartao %}
+        <div class="campo campo-checkbox">
+            <input type="checkbox" id="ativo" name="ativo" value="1"
+                   {% if dados.get('ativo') == '1' %}checked{% endif %}>
+            <label for="ativo">Cartão ativo (desmarque se não usa mais: ele some das novas compras, mas o histórico fica)</label>
+        </div>
+        {% endif %}
+
+        <div class="botoes-form">
+            <button type="submit" class="botao botao-primario">
+                {{ "Salvar alterações" if cartao else "Cadastrar cartão" }}
+            </button>
+            <a href="{{ url_for('cartoes') }}">Cancelar</a>
+        </div>
+    </form>
+{% endblock %}

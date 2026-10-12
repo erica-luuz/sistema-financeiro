@@ -229,6 +229,20 @@ textarea { min-height: 90px; resize: vertical; }
     gap: 0 1rem;
 }
 
+.ajuda {
+    font-size: 0.85rem;
+    color: var(--cinza);
+    margin: -0.25rem 0 1rem;
+}
+
+.campo-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+.campo-checkbox input { width: auto; margin-top: 0.3rem; }
+.campo-checkbox label { font-size: 0.95rem; font-weight: 500; color: var(--noite); margin: 0; }
+
 .botoes-form {
     display: flex;
     gap: 0.75rem;
@@ -290,6 +304,7 @@ tbody tr:hover { background: var(--cal); }
 }
 .selo-receita { background: var(--receita-fundo); color: var(--receita); }
 .selo-despesa { background: var(--despesa-fundo); color: var(--despesa); }
+.selo-inativo { background: var(--linha); color: var(--cinza); margin-left: 0.4rem; }
 
 .resumo-lista {
     color: var(--cinza);
