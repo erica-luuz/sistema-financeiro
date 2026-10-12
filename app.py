@@ -1,5 +1,6 @@
 import calendar
 import sqlite3
+import unicodedata
 from datetime import date
 
 from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
@@ -24,14 +25,23 @@ def data_br(data_iso):
     return f"{dia}/{mes}/{ano}"
 
 
+def sem_acento(texto):
+    """'Água' → 'agua'. Usado para ordenar nomes em português corretamente."""
+    decomposto = unicodedata.normalize("NFKD", texto)  # 'Á' vira 'A' + acento separado
+    return "".join(c for c in decomposto if not unicodedata.combining(c)).lower()
+
+
+def ordenar_categorias(categorias):
+    """Ordena por tipo e depois por nome, ignorando acentos (a 'Água' vem antes de 'Alimentação')."""
+    return sorted(categorias, key=lambda c: (c["tipo"], sem_acento(c["nome"])))
+
+
 def buscar_categorias():
     """Devolve todas as categorias, ordenadas por tipo e nome."""
     conn = get_db_connection()
-    categorias = conn.execute(
-        "SELECT id, nome, tipo FROM categorias ORDER BY tipo, nome"
-    ).fetchall()
+    categorias = conn.execute("SELECT id, nome, tipo FROM categorias").fetchall()
     conn.close()
-    return categorias
+    return ordenar_categorias(categorias)
 
 
 def buscar_categorias_com_uso():
@@ -43,11 +53,10 @@ def buscar_categorias_com_uso():
         FROM categorias c
         LEFT JOIN lancamentos l ON l.categoria_id = c.id
         GROUP BY c.id
-        ORDER BY c.tipo, c.nome
         """
     ).fetchall()
     conn.close()
-    return categorias
+    return ordenar_categorias(categorias)
 
 
 def tipo_confere_com_categoria(conn, categoria_id, tipo):
@@ -56,6 +65,50 @@ def tipo_confere_com_categoria(conn, categoria_id, tipo):
         "SELECT tipo FROM categorias WHERE id = ?", (categoria_id,)
     ).fetchone()
     return categoria is not None and categoria["tipo"] == tipo
+
+
+CAMPOS_LANCAMENTO = ("descricao", "valor", "tipo", "data", "categoria_id", "observacao")
+
+
+def ler_formulario_lancamento():
+    """Lê os campos do formulário como textos. Se der erro, eles voltam para a tela."""
+    return {campo: request.form.get(campo, "").strip() for campo in CAMPOS_LANCAMENTO}
+
+
+def dados_do_lancamento(lancamento):
+    """Converte uma linha do banco nos textos que o formulário espera (25050 → '250.50')."""
+    return {
+        "descricao": lancamento["descricao"],
+        "valor": f"{lancamento['valor_centavos'] / 100:.2f}",
+        "tipo": lancamento["tipo"],
+        "data": lancamento["data"],
+        "categoria_id": str(lancamento["categoria_id"]),
+        "observacao": lancamento["observacao"] or "",
+    }
+
+
+def para_centavos(valor_texto):
+    """'250.50' ou '250,50' → 25050."""
+    return round(float(valor_texto.replace(",", ".")) * 100)
+
+
+def validar_lancamento(conn, dados):
+    """Confere as regras de negócio. Devolve a mensagem de erro, ou None se estiver tudo certo."""
+    if not dados["descricao"]:
+        return "Informe a descrição."
+    try:
+        centavos = para_centavos(dados["valor"])
+    except (ValueError, OverflowError):
+        return "Informe um valor válido, por exemplo 250,50."
+    if centavos <= 0:
+        return "O valor deve ser maior que zero."
+    if not dados["data"]:
+        return "Informe a data."
+    if not tipo_confere_com_categoria(conn, dados["categoria_id"], dados["tipo"]):
+        return "O tipo do lançamento não corresponde ao tipo da categoria. Escolha uma categoria de " + (
+            "receita." if dados["tipo"] == "receita" else "despesa."
+        )
+    return None
 
 
 def periodo_mes_atual():
@@ -145,9 +198,13 @@ def nova_categoria():
         tipo = request.form["tipo"]
 
         if not nome:
-            return render_template("nova_categoria.html", erro="Informe o nome da categoria.")
+            return render_template(
+                "nova_categoria.html", tipo=tipo, erro="Informe o nome da categoria."
+            )
         if tipo not in ("receita", "despesa"):
-            return render_template("nova_categoria.html", erro="Tipo inválido.")
+            return render_template(
+                "nova_categoria.html", nome=nome, erro="Escolha o tipo: receita ou despesa."
+            )
 
         conn = get_db_connection()
         try:
@@ -155,8 +212,8 @@ def nova_categoria():
             conn.commit()
         except sqlite3.IntegrityError:
             # O UNIQUE (nome, tipo) do schema recusou: essa categoria já existe
-            erro = f"Já existe uma categoria '{nome}' do tipo {tipo}."
-            return render_template("nova_categoria.html", erro=erro)
+            erro = f"Já existe uma categoria '{nome}' do tipo {tipo}. Use outro nome."
+            return render_template("nova_categoria.html", nome=nome, tipo=tipo, erro=erro)
         finally:
             conn.close()  # o finally roda sempre: com ou sem erro
 
@@ -259,28 +316,29 @@ def lancamentos():
 def novo_lancamento():
     # POST: o usuário clicou em "Salvar"
     if request.method == "POST":
-        # Lê os campos do formulário (pelo "name" de cada campo no HTML)
-        descricao = request.form["descricao"]
-        valor_centavos = round(float(request.form["valor"]) * 100)  # "19.99" → 1999
-        tipo = request.form["tipo"]
-        data = request.form["data"]  # já vem como AAAA-MM-DD
-        categoria_id = request.form["categoria_id"]
-        observacao = request.form["observacao"]
+        dados = ler_formulario_lancamento()
 
         conn = get_db_connection()
-
-        if not tipo_confere_com_categoria(conn, categoria_id, tipo):
+        erro = validar_lancamento(conn, dados)
+        if erro:
             conn.close()
-            erro = "O tipo do lançamento não corresponde ao tipo da categoria."
+            # Mostra o formulário de novo, COM os dados digitados, para só corrigir o que falta
             return render_template(
-                "novo_lancamento.html", categorias=buscar_categorias(), erro=erro
+                "novo_lancamento.html", dados=dados, categorias=buscar_categorias(), erro=erro
             )
 
         # Grava no banco. Os "?" protegem contra SQL Injection
         conn.execute(
             "INSERT INTO lancamentos (descricao, valor_centavos, tipo, data, categoria_id, observacao) "
             "VALUES (?, ?, ?, ?, ?, ?)",
-            (descricao, valor_centavos, tipo, data, categoria_id, observacao),
+            (
+                dados["descricao"],
+                para_centavos(dados["valor"]),
+                dados["tipo"],
+                dados["data"],  # já vem como AAAA-MM-DD
+                dados["categoria_id"],
+                dados["observacao"] or None,
+            ),
         )
         conn.commit()  # confirma a gravação
         conn.close()
@@ -288,8 +346,9 @@ def novo_lancamento():
         # Manda o navegador para outra página (evita duplicar ao apertar F5)
         return redirect(url_for("lancamentos"))
 
-    # GET: mostrar o formulário vazio
-    return render_template("novo_lancamento.html", categorias=buscar_categorias())
+    # GET: formulário vazio, já com a data de hoje e o tipo "despesa"
+    dados = {"tipo": "despesa", "data": date.today().isoformat()}
+    return render_template("novo_lancamento.html", dados=dados, categorias=buscar_categorias())
 
 
 @app.route("/lancamentos/editar/<int:lancamento_id>", methods=["GET", "POST"])
@@ -306,19 +365,15 @@ def editar_lancamento(lancamento_id):
 
     # POST: o usuário clicou em "Salvar alterações"
     if request.method == "POST":
-        descricao = request.form["descricao"]
-        valor_centavos = round(float(request.form["valor"]) * 100)
-        tipo = request.form["tipo"]
-        data = request.form["data"]
-        categoria_id = request.form["categoria_id"]
-        observacao = request.form["observacao"]
+        dados = ler_formulario_lancamento()
 
-        if not tipo_confere_com_categoria(conn, categoria_id, tipo):
+        erro = validar_lancamento(conn, dados)
+        if erro:
             conn.close()
-            erro = "O tipo do lançamento não corresponde ao tipo da categoria."
             return render_template(
                 "editar_lancamento.html",
                 lancamento=lancamento,
+                dados=dados,
                 categorias=buscar_categorias(),
                 erro=erro,
             )
@@ -332,7 +387,15 @@ def editar_lancamento(lancamento_id):
                    atualizado_em = CURRENT_TIMESTAMP
              WHERE id = ?
             """,
-            (descricao, valor_centavos, tipo, data, categoria_id, observacao, lancamento_id),
+            (
+                dados["descricao"],
+                para_centavos(dados["valor"]),
+                dados["tipo"],
+                dados["data"],
+                dados["categoria_id"],
+                dados["observacao"] or None,
+                lancamento_id,
+            ),
         )
         conn.commit()
         conn.close()
@@ -341,7 +404,10 @@ def editar_lancamento(lancamento_id):
     # GET: mostrar o formulário já preenchido com os dados atuais
     conn.close()
     return render_template(
-        "editar_lancamento.html", lancamento=lancamento, categorias=buscar_categorias()
+        "editar_lancamento.html",
+        lancamento=lancamento,
+        dados=dados_do_lancamento(lancamento),
+        categorias=buscar_categorias(),
     )
 
 

@@ -3,79 +3,97 @@
 {% block titulo %}Lançamentos{% endblock %}
 
 {% block conteudo %}
-    <h1>Lançamentos</h1>
-
-    <p><a href="{{ url_for('novo_lancamento') }}">+ Novo lançamento</a></p>
+    <div class="cabecalho-pagina">
+        <h1>Lançamentos</h1>
+    </div>
 
     <!-- Filtros: GET, porque só consultam -->
-    <form method="get">
-        <label for="inicio">De</label>
-        <input type="date" id="inicio" name="inicio" value="{{ filtros['inicio'] }}">
-
-        <label for="fim">até</label>
-        <input type="date" id="fim" name="fim" value="{{ filtros['fim'] }}">
-
-        <label for="tipo">Tipo</label>
-        <select id="tipo" name="tipo">
-            <option value="">Todos</option>
-            <option value="receita" {% if filtros['tipo'] == 'receita' %}selected{% endif %}>Receita</option>
-            <option value="despesa" {% if filtros['tipo'] == 'despesa' %}selected{% endif %}>Despesa</option>
-        </select>
-
-        <label for="categoria_id">Categoria</label>
-        <select id="categoria_id" name="categoria_id">
-            <option value="">Todas</option>
-            {% for categoria in categorias %}
-            <option value="{{ categoria['id'] }}"
-                    {% if filtros['categoria_id'] == categoria['id'] | string %}selected{% endif %}>
-                {{ categoria['nome'] }} ({{ categoria['tipo'] }})
-            </option>
-            {% endfor %}
-        </select>
-
-        <button type="submit">Filtrar</button>
-        {% if filtrando %}
-        <a href="{{ url_for('lancamentos') }}">Limpar filtros</a>
-        {% endif %}
+    <form method="get" class="painel filtros">
+        <div>
+            <label for="inicio">De</label>
+            <input type="date" id="inicio" name="inicio" value="{{ filtros['inicio'] }}">
+        </div>
+        <div>
+            <label for="fim">Até</label>
+            <input type="date" id="fim" name="fim" value="{{ filtros['fim'] }}">
+        </div>
+        <div>
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo">
+                <option value="">Todos</option>
+                <option value="receita" {% if filtros['tipo'] == 'receita' %}selected{% endif %}>Receita</option>
+                <option value="despesa" {% if filtros['tipo'] == 'despesa' %}selected{% endif %}>Despesa</option>
+            </select>
+        </div>
+        <div>
+            <label for="categoria_id">Categoria</label>
+            <select id="categoria_id" name="categoria_id">
+                <option value="">Todas</option>
+                {% for categoria in categorias %}
+                <option value="{{ categoria['id'] }}"
+                        {% if filtros['categoria_id'] == categoria['id'] | string %}selected{% endif %}>
+                    {{ categoria['nome'] }} ({{ categoria['tipo'] }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="botoes-filtro">
+            <button type="submit" class="botao">Filtrar</button>
+            {% if filtrando %}
+            <a href="{{ url_for('lancamentos') }}">Limpar filtros</a>
+            {% endif %}
+        </div>
     </form>
 
     {% if lancamentos %}
-    <p>
+    <p class="resumo-lista">
         {{ lancamentos | length }} lançamento(s) ·
-        Receitas: <span style="color: green;">{{ total_receitas | moeda }}</span> ·
-        Despesas: <span style="color: red;">{{ total_despesas | moeda }}</span>
+        Receitas <span class="valor receita">{{ total_receitas | moeda }}</span> ·
+        Despesas <span class="valor despesa">{{ total_despesas | moeda }}</span>
     </p>
 
-    <table>
-        <tr>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Categoria</th>
-            <th>Tipo</th>
-            <th>Valor</th>
-            <th>Ações</th>
-        </tr>
-        {% for lancamento in lancamentos %}
-        <tr>
-            <td>{{ lancamento["data"] | data_br }}</td>
-            <td>{{ lancamento["descricao"] }}</td>
-            <td>{{ lancamento["categoria"] }}</td>
-            <td>{{ lancamento["tipo"] }}</td>
-            <td>{{ lancamento["valor_centavos"] | moeda }}</td>
-            <td>
-                <a href="{{ url_for('editar_lancamento', lancamento_id=lancamento['id']) }}">Editar</a>
-                <form method="post" style="display: inline;"
-                      action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
-                      onsubmit="return confirm('Excluir este lançamento?');">
-                    <button type="submit">Excluir</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="painel tabela-rolagem">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Tipo</th>
+                    <th class="num">Valor</th>
+                    <th class="num">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lancamento in lancamentos %}
+                <tr>
+                    <td class="valor">{{ lancamento["data"] | data_br }}</td>
+                    <td>{{ lancamento["descricao"] }}</td>
+                    <td>{{ lancamento["categoria"] }}</td>
+                    <td><span class="selo selo-{{ lancamento['tipo'] }}">{{ lancamento["tipo"] | capitalize }}</span></td>
+                    <td class="num valor {{ lancamento['tipo'] }}">{{ lancamento["valor_centavos"] | moeda }}</td>
+                    <td class="num">
+                        <a class="acao" href="{{ url_for('editar_lancamento', lancamento_id=lancamento['id']) }}">Editar</a>
+                        <form method="post" class="form-inline"
+                              action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
+                              onsubmit="return confirm('Excluir este lançamento?');">
+                            <button type="submit" class="acao acao-perigo">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% elif filtrando %}
-    <p>Nenhum lançamento encontrado com esses filtros.</p>
+    <p class="vazio">
+        Nenhum lançamento encontrado com esses filtros.<br>
+        <a href="{{ url_for('lancamentos') }}">Limpar filtros</a>
+    </p>
     {% else %}
-    <p>Nenhum lançamento cadastrado ainda.</p>
+    <p class="vazio">
+        Nenhum lançamento cadastrado ainda.<br>
+        <a href="{{ url_for('novo_lancamento') }}">Cadastrar o primeiro lançamento</a>
+    </p>
     {% endif %}
 {% endblock %}

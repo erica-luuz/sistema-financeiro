@@ -1,0 +1,61 @@
+{#
+    Formulário de lançamento, usado por novo_lancamento.html e editar_lancamento.html.
+    Espera: "dados" (os valores dos campos, como textos), "categorias" e "texto_botao".
+    O "_" no começo do nome indica que este arquivo é um pedaço, e não uma página inteira.
+#}
+{% if erro %}
+<p class="alerta">{{ erro }}</p>
+{% endif %}
+
+<form method="post" class="painel formulario">
+    <div class="campo">
+        <label for="descricao">Descrição</label>
+        <input type="text" id="descricao" name="descricao" value="{{ dados.get('descricao', '') }}"
+               placeholder="Ex.: Supermercado" required>
+    </div>
+
+    <div class="campos-lado-a-lado">
+        <div class="campo">
+            <label for="valor">Valor (R$)</label>
+            <input type="number" id="valor" name="valor" step="0.01" min="0.01"
+                   value="{{ dados.get('valor', '') }}" placeholder="0,00" required>
+        </div>
+
+        <div class="campo">
+            <label for="data">Data</label>
+            <input type="date" id="data" name="data" value="{{ dados.get('data', '') }}" required>
+        </div>
+    </div>
+
+    <div class="campos-lado-a-lado">
+        <div class="campo">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo" required>
+                <option value="despesa" {% if dados.get('tipo') == 'despesa' %}selected{% endif %}>Despesa</option>
+                <option value="receita" {% if dados.get('tipo') == 'receita' %}selected{% endif %}>Receita</option>
+            </select>
+        </div>
+
+        <div class="campo">
+            <label for="categoria_id">Categoria</label>
+            <select id="categoria_id" name="categoria_id" required>
+                {% for categoria in categorias %}
+                <option value="{{ categoria['id'] }}"
+                        {% if dados.get('categoria_id') == categoria['id'] | string %}selected{% endif %}>
+                    {{ categoria['nome'] }} ({{ categoria['tipo'] }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="campo">
+        <label for="observacao">Observação (opcional)</label>
+        <textarea id="observacao" name="observacao">{{ dados.get('observacao', '') }}</textarea>
+    </div>
+
+    <div class="botoes-form">
+        <button type="submit" class="botao botao-primario">{{ texto_botao }}</button>
+        <a href="{{ url_for('lancamentos') }}">Cancelar</a>
+    </div>
+</form>

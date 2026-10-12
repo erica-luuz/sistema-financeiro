@@ -1,0 +1,384 @@
+/* =========================================================
+   Finanças da Casa — estilo
+   Identidade: o azulejo das casas brasileiras.
+   O padrão aparece só na faixa do topo e no cartão do saldo.
+   ========================================================= */
+
+:root {
+    /* Cores */
+    --cal: #f6f8fb;             /* fundo: branco de parede caiada */
+    --branco: #ffffff;
+    --azulejo: #1d4e9e;         /* azul principal */
+    --azulejo-claro: #dfe8f6;
+    --noite: #14213d;           /* texto */
+    --cinza: #5b6782;           /* texto secundário */
+    --linha: #dce3ee;           /* bordas */
+    --receita: #2e7d4f;
+    --receita-fundo: #e5f3ea;
+    --despesa: #b3261e;
+    --despesa-fundo: #fbe9e7;
+
+    /* Tipografia */
+    --fonte-titulo: "Bricolage Grotesque", "Segoe UI", sans-serif;
+    --fonte-texto: "Figtree", "Segoe UI", sans-serif;
+    --fonte-numero: "IBM Plex Mono", Consolas, monospace;
+
+    --raio: 10px;
+}
+
+/* ---------- Base ---------- */
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--cal);
+    color: var(--noite);
+    font-family: var(--fonte-texto);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+h1, h2 {
+    font-family: var(--fonte-titulo);
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+}
+h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.15rem; font-weight: 600; }
+
+a { color: var(--azulejo); }
+
+:focus-visible {
+    outline: 3px solid var(--azulejo);
+    outline-offset: 2px;
+}
+
+/* Valores em dinheiro: fonte com números de mesma largura */
+.valor {
+    font-family: var(--fonte-numero);
+    font-weight: 500;
+    white-space: nowrap;
+}
+.receita { color: var(--receita); }
+.despesa { color: var(--despesa); }
+
+/* ---------- Topo e menu ---------- */
+
+/* A assinatura: uma faixa de azulejos */
+.faixa-azulejo {
+    height: 16px;
+    background-color: var(--azulejo);
+    background-image:
+        radial-gradient(circle, var(--branco) 0 2px, transparent 2.5px),
+        conic-gradient(from 45deg,
+            var(--azulejo) 0 25%, #3a6bb8 0 50%,
+            var(--azulejo) 0 75%, #3a6bb8 0);
+    background-size: 16px 16px;
+}
+
+.menu {
+    background: var(--branco);
+    border-bottom: 1px solid var(--linha);
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+}
+
+.marca {
+    font-family: var(--fonte-titulo);
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--azulejo);
+    text-decoration: none;
+    margin-right: auto;
+}
+
+.menu-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.menu-links a:not(.botao) {
+    color: var(--cinza);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--raio);
+}
+.menu-links a:not(.botao):hover { color: var(--noite); background: var(--cal); }
+.menu-links a.ativo { color: var(--azulejo); background: var(--azulejo-claro); }
+
+/* ---------- Conteúdo ---------- */
+
+.conteudo {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+}
+
+.cabecalho-pagina {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.25rem;
+}
+.cabecalho-pagina h1 { margin: 0; }
+
+.subtitulo { color: var(--cinza); margin: 0.25rem 0 0; }
+
+.painel {
+    background: var(--branco);
+    border: 1px solid var(--linha);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+/* ---------- Botões ---------- */
+
+.botao {
+    display: inline-block;
+    font: inherit;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    border-radius: var(--raio);
+    border: 1px solid var(--linha);
+    background: var(--branco);
+    color: var(--noite);
+    text-decoration: none;
+    cursor: pointer;
+}
+.botao:hover { border-color: var(--cinza); }
+
+.botao-primario {
+    background: var(--azulejo);
+    border-color: var(--azulejo);
+    color: var(--branco);
+}
+.botao-primario:hover { background: #163e7f; border-color: #163e7f; }
+
+/* Ações discretas dentro das tabelas */
+.acao {
+    font: inherit;
+    font-size: 0.9rem;
+    background: none;
+    border: none;
+    padding: 0.25rem 0.4rem;
+    color: var(--azulejo);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.acao-perigo { color: var(--despesa); }
+
+.form-inline { display: inline; }
+
+/* ---------- Mensagens ---------- */
+
+.alerta {
+    background: var(--despesa-fundo);
+    color: var(--despesa);
+    border-left: 4px solid var(--despesa);
+    border-radius: var(--raio);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-weight: 500;
+}
+
+.vazio {
+    color: var(--cinza);
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+/* ---------- Formulários ---------- */
+
+.formulario { max-width: 560px; }
+
+.campo { margin-bottom: 1rem; }
+
+.campo label,
+.filtros label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cinza);
+    margin-bottom: 0.3rem;
+}
+
+input, select, textarea {
+    font: inherit;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--linha);
+    border-radius: var(--raio);
+    background: var(--branco);
+    color: var(--noite);
+}
+textarea { min-height: 90px; resize: vertical; }
+
+.campos-lado-a-lado {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1rem;
+}
+
+.botoes-form {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1.5rem;
+}
+
+/* Barra de filtros (lista de lançamentos e dashboard) */
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+.filtros > div { flex: 1 1 150px; }
+.filtros .botoes-filtro {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* ---------- Tabelas ---------- */
+
+.tabela-rolagem { overflow-x: auto; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cinza);
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--linha);
+}
+
+td {
+    padding: 0.7rem 0.75rem;
+    border-bottom: 1px solid var(--linha);
+    vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--cal); }
+
+.num { text-align: right; }
+
+.selo {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+}
+.selo-receita { background: var(--receita-fundo); color: var(--receita); }
+.selo-despesa { background: var(--despesa-fundo); color: var(--despesa); }
+
+.resumo-lista {
+    color: var(--cinza);
+    font-size: 0.95rem;
+    margin: 0 0 0.75rem;
+}
+
+/* ---------- Dashboard ---------- */
+
+.cartoes {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.cartao {
+    background: var(--branco);
+    border: 1px solid var(--linha);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+}
+.cartao .rotulo {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cinza);
+    margin: 0 0 0.35rem;
+}
+.cartao .valor { font-size: 1.5rem; }
+
+/* O saldo é o protagonista: ganha a moldura de azulejo */
+.cartao-saldo {
+    border: none;
+    padding: 6px;
+    background-color: var(--azulejo);
+    background-image:
+        radial-gradient(circle, var(--branco) 0 2px, transparent 2.5px),
+        conic-gradient(from 45deg,
+            var(--azulejo) 0 25%, #3a6bb8 0 50%,
+            var(--azulejo) 0 75%, #3a6bb8 0);
+    background-size: 16px 16px;
+}
+.cartao-saldo .miolo {
+    background: var(--branco);
+    border-radius: calc(var(--raio) - 4px);
+    padding: 1.25rem;
+    height: 100%;
+}
+.cartao-saldo .valor { font-size: 2.4rem; }
+
+.duas-colunas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+.duas-colunas .painel { margin-bottom: 0; }
+
+/* Despesas por categoria: barras horizontais */
+.barras { list-style: none; margin: 0; padding: 0; }
+.barras li { margin-bottom: 0.9rem; }
+.barras li:last-child { margin-bottom: 0; }
+.barra-topo {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+.barra {
+    height: 8px;
+    background: var(--azulejo-claro);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.barra span {
+    display: block;
+    height: 100%;
+    background: var(--azulejo);
+    border-radius: 999px;
+}
+.pct { color: var(--cinza); font-size: 0.8rem; }
+
+/* ---------- Celular ---------- */
+
+@media (max-width: 760px) {
+    h1 { font-size: 1.6rem; }
+    .cartoes { grid-template-columns: 1fr 1fr; }
+    .cartao-saldo { grid-column: 1 / -1; }
+    .duas-colunas { grid-template-columns: 1fr; }
+    .campos-lado-a-lado { grid-template-columns: 1fr; }
+    .menu-links { width: 100%; }
+}

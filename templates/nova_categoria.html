@@ -3,27 +3,31 @@
 {% block titulo %}Nova categoria{% endblock %}
 
 {% block conteudo %}
-    <h1>Nova categoria</h1>
+    <div class="cabecalho-pagina">
+        <h1>Nova categoria</h1>
+    </div>
 
     {% if erro %}
-    <p style="color: red;">{{ erro }}</p>
+    <p class="alerta">{{ erro }}</p>
     {% endif %}
 
-    <form method="post">
-        <p>
-            <label for="nome">Nome</label><br>
-            <input type="text" id="nome" name="nome" required>
-        </p>
+    <form method="post" class="painel formulario">
+        <div class="campo">
+            <label for="nome">Nome</label>
+            <input type="text" id="nome" name="nome" value="{{ nome or '' }}" required>
+        </div>
 
-        <p>
-            <label for="tipo">Tipo</label><br>
+        <div class="campo">
+            <label for="tipo">Tipo</label>
             <select id="tipo" name="tipo" required>
-                <option value="despesa">Despesa</option>
-                <option value="receita">Receita</option>
+                <option value="despesa" {% if tipo == 'despesa' %}selected{% endif %}>Despesa</option>
+                <option value="receita" {% if tipo == 'receita' %}selected{% endif %}>Receita</option>
             </select>
-        </p>
+        </div>
 
-        <button type="submit">Salvar</button>
-        <a href="{{ url_for('categorias') }}">Cancelar</a>
+        <div class="botoes-form">
+            <button type="submit" class="botao botao-primario">Criar categoria</button>
+            <a href="{{ url_for('categorias') }}">Cancelar</a>
+        </div>
     </form>
 {% endblock %}

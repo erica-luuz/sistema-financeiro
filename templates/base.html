@@ -4,17 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}{% endblock %} | Finanças da Casa</title>
+
+    <!-- Fontes (se estiver sem internet, o CSS usa as fontes do sistema) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <nav>
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('lancamentos')}}">Lançamentos</a>
-        <a href="{{ url_for('novo_lancamento')}}">Novo lançamento</a>
-        <a href="{{ url_for('categorias') }}">Categorias</a>
+    <header>
+        <div class="faixa-azulejo" aria-hidden="true"></div>
+        <nav class="menu">
+            <a class="marca" href="{{ url_for('dashboard') }}">Finanças da Casa</a>
 
-    </nav>
+            {# request.endpoint = nome da função da rota atual; serve para destacar o item do menu #}
+            {% set pagina = request.endpoint %}
+            <div class="menu-links">
+                <a href="{{ url_for('dashboard') }}"
+                   class="{{ 'ativo' if pagina == 'dashboard' }}">Dashboard</a>
+                <a href="{{ url_for('lancamentos') }}"
+                   class="{{ 'ativo' if pagina in ['lancamentos', 'editar_lancamento'] }}">Lançamentos</a>
+                <a href="{{ url_for('categorias') }}"
+                   class="{{ 'ativo' if pagina in ['categorias', 'nova_categoria'] }}">Categorias</a>
+                <a class="botao botao-primario" href="{{ url_for('novo_lancamento') }}">+ Novo lançamento</a>
+            </div>
+        </nav>
+    </header>
 
-    <main>
+    <main class="conteudo">
         {% block conteudo %}{% endblock %}
     </main>
 </body>
