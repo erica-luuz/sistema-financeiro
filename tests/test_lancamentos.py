@@ -158,6 +158,30 @@ def test_categoria_sem_uso_pode_ser_excluida(logado, banco):
     assert banco.execute("SELECT COUNT(*) FROM categorias WHERE id = ?", (cid,)).fetchone()[0] == 0
 
 
+def test_editar_nome_de_categoria_em_uso(logado, banco):
+    novo(logado, banco)
+    cid = id_categoria(banco, "Alimentação")
+    logado.post(f"/categorias/editar/{cid}", data={"nome": "Comida", "tipo": "receita"})
+    linha = banco.execute("SELECT nome, tipo FROM categorias WHERE id = ?", (cid,)).fetchone()
+    assert tuple(linha) == ("Comida", "despesa")   # o nome mudou; o tipo não (está em uso)
+
+
+def test_editar_tipo_de_categoria_sem_uso(logado, banco):
+    cid = id_categoria(banco, "Lazer")
+    logado.post(f"/categorias/editar/{cid}", data={"nome": "Lazer", "tipo": "receita"})
+    assert banco.execute("SELECT tipo FROM categorias WHERE id = ?", (cid,)).fetchone()[0] == "receita"
+
+
+def test_editar_categoria_inexistente_da_404(logado):
+    assert logado.get("/categorias/editar/9999").status_code == 404
+
+
+def test_editar_categoria_para_nome_repetido(logado, banco):
+    cid = id_categoria(banco, "Lazer")
+    resposta = logado.post(f"/categorias/editar/{cid}", data={"nome": "Moradia", "tipo": "despesa"})
+    assert "Já existe" in resposta.get_data(as_text=True)
+
+
 def test_categorias_ordenadas_sem_acento(logado):
     html = logado.get("/categorias").get_data(as_text=True)
     assert html.index("Água") < html.index("Alimentação")

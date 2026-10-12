@@ -1,7 +1,7 @@
 """Categorias: listar, criar e excluir (com proteção para categorias em uso)."""
 import sqlite3
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from db import get_db_connection
 from util import sem_acento
@@ -84,6 +84,62 @@ def nova():
         return redirect(url_for("categorias.listar"))
 
     return render_template("nova_categoria.html")
+
+
+def categoria_em_uso(conn, categoria_id):
+    """True se algum lançamento, compra, conta recorrente ou orçamento usa a categoria."""
+    return conn.execute(
+        """
+        SELECT EXISTS (SELECT 1 FROM lancamentos    WHERE categoria_id = :id)
+            OR EXISTS (SELECT 1 FROM compras_cartao WHERE categoria_id = :id)
+            OR EXISTS (SELECT 1 FROM recorrencias   WHERE categoria_id = :id)
+            OR EXISTS (SELECT 1 FROM orcamentos     WHERE categoria_id = :id)
+        """,
+        {"id": categoria_id},   # :id = parâmetro com nome (o mesmo valor usado 4 vezes)
+    ).fetchone()[0]
+
+
+@bp.route("/categorias/editar/<int:categoria_id>", methods=["GET", "POST"])
+def editar(categoria_id):
+    conn = get_db_connection()
+    categoria = conn.execute("SELECT * FROM categorias WHERE id = ?", (categoria_id,)).fetchone()
+    if categoria is None:
+        conn.close()
+        abort(404)
+    # Categoria em uso pode mudar de NOME, mas não de TIPO: os lançamentos dela ficariam
+    # com tipo diferente do da categoria (regra de negócio nº 4)
+    tipo_travado = categoria_em_uso(conn, categoria_id)
+
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        tipo = categoria["tipo"] if tipo_travado else request.form.get("tipo", "")
+        erro = None
+        if not nome:
+            erro = "Informe o nome da categoria."
+        elif tipo not in ("receita", "despesa"):
+            erro = "Escolha o tipo: receita ou despesa."
+        else:
+            try:
+                conn.execute(
+                    "UPDATE categorias SET nome = ?, tipo = ? WHERE id = ?", (nome, tipo, categoria_id)
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                erro = f"Já existe uma categoria '{nome}' do tipo {tipo}. Use outro nome."
+        conn.close()
+        if erro:
+            return render_template(
+                "nova_categoria.html", categoria=categoria, tipo_travado=tipo_travado,
+                nome=nome, tipo=tipo, erro=erro,
+            )
+        flash(f"Categoria \"{nome}\" atualizada.", "sucesso")
+        return redirect(url_for("categorias.listar"))
+
+    conn.close()
+    return render_template(
+        "nova_categoria.html", categoria=categoria, tipo_travado=tipo_travado,
+        nome=categoria["nome"], tipo=categoria["tipo"],
+    )
 
 
 @bp.route("/categorias/excluir/<int:categoria_id>", methods=["POST"])

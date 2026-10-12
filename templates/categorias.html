@@ -29,6 +29,7 @@
                     <td><span class="selo selo-{{ categoria['tipo'] }}">{{ categoria["tipo"] | capitalize }}</span></td>
                     <td class="num valor">{{ categoria["qtd_lancamentos"] }}</td>
                     <td class="num">
+                        <a class="acao" href="{{ url_for('categorias.editar', categoria_id=categoria['id']) }}">Editar</a>
                         <form method="post" class="form-inline"
                               action="{{ url_for('categorias.excluir', categoria_id=categoria['id']) }}"
                               onsubmit="return confirm('Excluir esta categoria?');">

@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 
-{% block titulo %}Nova categoria{% endblock %}
+{# Serve para criar (sem "categoria") e para editar (com "categoria") #}
+{% set titulo = "Editar categoria" if categoria else "Nova categoria" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
 
 {% block conteudo %}
     <div class="cabecalho-pagina">
-        <h1>Nova categoria</h1>
+        <h1>{{ titulo }}</h1>
     </div>
 
     {% if erro %}
@@ -20,14 +23,20 @@
 
         <div class="campo">
             <label for="tipo">Tipo</label>
-            <select id="tipo" name="tipo" required>
+            <select id="tipo" name="tipo" required {% if tipo_travado %}disabled{% endif %}>
                 <option value="despesa" {% if tipo == 'despesa' %}selected{% endif %}>Despesa</option>
                 <option value="receita" {% if tipo == 'receita' %}selected{% endif %}>Receita</option>
             </select>
+            {% if tipo_travado %}
+            <p class="ajuda">
+                O tipo não pode ser mudado porque a categoria já é usada (em lançamentos,
+                compras, contas recorrentes ou orçamento). O nome pode.
+            </p>
+            {% endif %}
         </div>
 
         <div class="botoes-form">
-            <button type="submit" class="botao botao-primario">Criar categoria</button>
+            <button type="submit" class="botao botao-primario">{{ "Salvar alterações" if categoria else "Criar categoria" }}</button>
             <a href="{{ url_for('categorias.listar') }}">Cancelar</a>
         </div>
     </form>
