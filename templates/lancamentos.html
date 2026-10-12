@@ -4,7 +4,16 @@
 
 {% block conteudo %}
     <div class="cabecalho-pagina">
-        <h1>Lançamentos</h1>
+        <div>
+            <h1>Lançamentos</h1>
+            <p class="subtitulo">
+                {% if todos_os_periodos %}Todos os períodos
+                {% else %}{{ filtros["inicio"] | data_br if filtros["inicio"] else "início" }} a {{ filtros["fim"] | data_br if filtros["fim"] else "hoje" }}{% endif %}
+                ·
+                {% if todos_os_periodos %}<a href="{{ url_for('lancamentos.listar') }}">Ver só o mês atual</a>
+                {% else %}<a href="{{ url_for('lancamentos.listar', periodo='todos') }}">Ver todos os períodos</a>{% endif %}
+            </p>
+        </div>
         <div class="botoes-filtro">
             {# **request.args repassa os filtros da tela para o arquivo exportado #}
             <a class="botao" href="{{ url_for('lancamentos.exportar', **request.args) }}"
@@ -15,6 +24,10 @@
 
     <!-- Filtros: GET, porque só consultam -->
     <form method="get" class="painel filtros">
+        <div class="filtro-busca">
+            <label for="q">Buscar</label>
+            <input type="search" id="q" name="q" value="{{ filtros['q'] }}" placeholder="Ex.: mercado, farmácia">
+        </div>
         <div>
             <label for="inicio">De</label>
             <input type="date" id="inicio" name="inicio" value="{{ filtros['inicio'] }}">
@@ -62,7 +75,7 @@
 
     {% if lancamentos %}
     <p class="resumo-lista">
-        {{ lancamentos | length }} lançamento(s) ·
+        {{ qtd }} lançamento(s) ·
         Receitas <span class="valor receita">{{ total_receitas | moeda }}</span> ·
         Despesas <span class="valor despesa">{{ total_despesas | moeda }}</span>
     </p>
@@ -119,6 +132,18 @@
             </tbody>
         </table>
     </div>
+
+    {% if total_paginas > 1 %}
+    <nav class="paginacao" aria-label="Páginas">
+        {% if pagina > 1 %}
+        <a class="botao" href="{{ url_for('lancamentos.listar', pagina=pagina - 1, **argumentos) }}">‹ Anterior</a>
+        {% endif %}
+        <span>Página {{ pagina }} de {{ total_paginas }}</span>
+        {% if pagina < total_paginas %}
+        <a class="botao" href="{{ url_for('lancamentos.listar', pagina=pagina + 1, **argumentos) }}">Próxima ›</a>
+        {% endif %}
+    </nav>
+    {% endif %}
     {% elif filtrando %}
     <p class="vazio">
         Nenhum lançamento encontrado com esses filtros.<br>
@@ -126,8 +151,9 @@
     </p>
     {% else %}
     <p class="vazio">
-        Nenhum lançamento cadastrado ainda.<br>
-        <a href="{{ url_for('lancamentos.novo') }}">Cadastrar o primeiro lançamento</a>
+        Nenhum lançamento neste mês.<br>
+        <a href="{{ url_for('lancamentos.novo') }}">Cadastrar um lançamento</a> ·
+        <a href="{{ url_for('lancamentos.listar', periodo='todos') }}">Ver todos os períodos</a>
     </p>
     {% endif %}
 {% endblock %}

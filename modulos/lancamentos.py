@@ -12,6 +12,7 @@ from util import (
     forma,
     numero_br,
     para_centavos,
+    periodo_mes_atual,
 )
 from modulos.categorias import buscar_categorias, tipo_confere_com_categoria
 
@@ -62,17 +63,53 @@ def validar_lancamento(conn, dados):
     return None
 
 
-def buscar_lancamentos_filtrados():
-    """Lê os filtros da URL e busca os lançamentos. Usada pela lista E pela exportação,
-    para o arquivo baixado ter exatamente o que está na tela. Devolve (filtros, filtrando, lançamentos)."""
+ITENS_POR_PAGINA = 50
+
+SELECT_LANCAMENTOS = """
+    SELECT l.id, l.descricao, l.valor_centavos, l.tipo, l.data, l.forma_pagamento,
+           l.data_compra, l.compra_id, l.parcela_numero, l.parcela_total, l.recorrencia_id,
+           l.observacao, c.nome AS categoria, ca.nome AS cartao, ca.titular
+    FROM lancamentos l
+    JOIN categorias c ON c.id = l.categoria_id
+    LEFT JOIN compras_cartao cc ON cc.id = l.compra_id      -- LEFT: nem todo lançamento é compra
+    LEFT JOIN cartoes ca ON ca.id = cc.cartao_id
+"""
+
+
+def texto_para_like(texto):
+    """'50%' → '%50\\%%': escapa os caracteres especiais do LIKE (% e _) que a pessoa digitou,
+    para eles serem procurados como texto comum."""
+    escapado = texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escapado}%"
+
+
+def montar_filtros():
+    """Lê os filtros da URL e monta o WHERE. Usada pela lista E pela exportação,
+    para o arquivo baixado ter exatamente o que está na tela.
+
+    Sem nenhum filtro de data na URL, a lista abre no MÊS ATUAL (e não com todos os
+    lançamentos de todos os tempos). ?periodo=todos mostra todos os períodos.
+    Devolve (filtros, filtrando, where, parametros).
+    """
+    inicio_mes, fim_mes = periodo_mes_atual()
+    sem_datas_na_url = "inicio" not in request.args and "fim" not in request.args
+    todos_os_periodos = request.args.get("periodo") == "todos"
+    usar_mes_atual = sem_datas_na_url and not todos_os_periodos
+
     # Filtros vindos do formulário (GET). Campo vazio = sem filtro
     filtros = {
-        "inicio": request.args.get("inicio", ""),
-        "fim": request.args.get("fim", ""),
+        "inicio": inicio_mes if usar_mes_atual else request.args.get("inicio", ""),
+        "fim": fim_mes if usar_mes_atual else request.args.get("fim", ""),
         "tipo": request.args.get("tipo", ""),
         "categoria_id": request.args.get("categoria_id", ""),
         "forma_pagamento": request.args.get("forma_pagamento", ""),
+        "q": request.args.get("q", "").strip(),   # busca por texto
     }
+    # "Filtrando" = algo diferente do padrão (mês atual, sem outros filtros)
+    filtrando = (
+        (filtros["inicio"], filtros["fim"]) != (inicio_mes, fim_mes)
+        or any(filtros[campo] for campo in ("tipo", "categoria_id", "forma_pagamento", "q"))
+    )
 
     # Monta o WHERE aos poucos: só entram as condições que foram preenchidas.
     # Os VALORES continuam indo pelos "?" (nunca colados no texto do SQL)
@@ -93,46 +130,69 @@ def buscar_lancamentos_filtrados():
     if filtros["forma_pagamento"]:
         condicoes.append("l.forma_pagamento = ?")
         parametros.append(filtros["forma_pagamento"])
+    if filtros["q"]:
+        # LIKE '%texto%' = "contém o texto" (sem diferenciar maiúsculas de minúsculas)
+        condicoes.append("(l.descricao LIKE ? ESCAPE '\\' OR l.observacao LIKE ? ESCAPE '\\')")
+        parametros += [texto_para_like(filtros["q"])] * 2
 
     where = ""
     if condicoes:
         where = "WHERE " + " AND ".join(condicoes)  # ["a", "b"] → "a AND b"
+    return filtros, filtrando, where, parametros
 
+
+def buscar_lancamentos_filtrados():
+    """Todos os lançamentos dos filtros atuais (sem paginar) — usado pela exportação."""
+    filtros, filtrando, where, parametros = montar_filtros()
     conn = get_db_connection()
     lancamentos = conn.execute(
-        f"""
-        SELECT l.id, l.descricao, l.valor_centavos, l.tipo, l.data, l.forma_pagamento,
-               l.data_compra, l.compra_id, l.parcela_numero, l.parcela_total, l.recorrencia_id,
-               l.observacao, c.nome AS categoria, ca.nome AS cartao, ca.titular
-        FROM lancamentos l
-        JOIN categorias c ON c.id = l.categoria_id
-        LEFT JOIN compras_cartao cc ON cc.id = l.compra_id      -- LEFT: nem todo lançamento é compra
-        LEFT JOIN cartoes ca ON ca.id = cc.cartao_id
-        {where}
-        ORDER BY l.data DESC, l.id DESC
-        """,
-        parametros,
+        f"{SELECT_LANCAMENTOS} {where} ORDER BY l.data DESC, l.id DESC", parametros
     ).fetchall()
     conn.close()
-    return filtros, bool(condicoes), lancamentos
+    return filtros, filtrando, lancamentos
 
 
 @bp.route("/lancamentos")
 def listar():
-    filtros, filtrando, lancamentos = buscar_lancamentos_filtrados()
+    filtros, filtrando, where, parametros = montar_filtros()
+    conn = get_db_connection()
 
-    # Totais do resultado filtrado (em centavos inteiros)
-    total_receitas = sum(l["valor_centavos"] for l in lancamentos if l["tipo"] == "receita")
-    total_despesas = sum(l["valor_centavos"] for l in lancamentos if l["tipo"] == "despesa")
+    # Totais de TODO o resultado filtrado (não só da página que aparece)
+    totais = conn.execute(
+        f"""
+        SELECT COUNT(*) AS qtd,
+               COALESCE(SUM(CASE WHEN l.tipo = 'receita' THEN l.valor_centavos END), 0) AS receitas,
+               COALESCE(SUM(CASE WHEN l.tipo = 'despesa' THEN l.valor_centavos END), 0) AS despesas
+        FROM lancamentos l {where}
+        """,
+        parametros,
+    ).fetchone()
 
+    # Paginação: LIMIT = quantos trazer; OFFSET = quantos pular (página 3 → pula 100)
+    total_paginas = max(1, -(-totais["qtd"] // ITENS_POR_PAGINA))   # divisão arredondando para cima
+    pagina = request.args.get("pagina", "1")
+    pagina = min(max(int(pagina) if pagina.isdigit() else 1, 1), total_paginas)
+    lancamentos = conn.execute(
+        f"{SELECT_LANCAMENTOS} {where} ORDER BY l.data DESC, l.id DESC LIMIT ? OFFSET ?",
+        [*parametros, ITENS_POR_PAGINA, (pagina - 1) * ITENS_POR_PAGINA],
+    ).fetchall()
+    conn.close()
+
+    # Os filtros atuais, sem a página: para os links "Anterior/Próxima" manterem os filtros
+    argumentos = {chave: valor for chave, valor in request.args.items() if chave != "pagina"}
     return render_template(
         "lancamentos.html",
         lancamentos=lancamentos,
         categorias=buscar_categorias(),
         filtros=filtros,
         filtrando=filtrando,
-        total_receitas=total_receitas,
-        total_despesas=total_despesas,
+        qtd=totais["qtd"],
+        total_receitas=totais["receitas"],
+        total_despesas=totais["despesas"],
+        pagina=pagina,
+        total_paginas=total_paginas,
+        argumentos=argumentos,
+        todos_os_periodos=not filtros["inicio"] and not filtros["fim"],
     )
 
 

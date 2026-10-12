@@ -379,6 +379,16 @@ tbody tr:hover { background: var(--cal); }
 .fatura-vencida { opacity: 0.75; }
 .fatura-futura { border-left: 4px dashed var(--linha); }
 
+.filtros .filtro-busca { flex: 2 1 220px; }
+
+.paginacao {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    color: var(--cinza);
+}
+
 .resumo-lista {
     color: var(--cinza);
     font-size: 0.95rem;
