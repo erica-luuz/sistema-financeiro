@@ -6,9 +6,9 @@
     <div class="cabecalho-pagina">
         <h1>Cartões de crédito</h1>
         <div class="botoes-filtro">
-            <a class="botao" href="{{ url_for('novo_cartao') }}">+ Novo cartão</a>
+            <a class="botao" href="{{ url_for('cartoes.novo') }}">+ Novo cartão</a>
             {% if cartoes %}
-            <a class="botao botao-primario" href="{{ url_for('nova_compra') }}">+ Compra no cartão</a>
+            <a class="botao botao-primario" href="{{ url_for('compras.nova') }}">+ Compra no cartão</a>
             {% endif %}
         </div>
     </div>
@@ -49,13 +49,13 @@
                         {{ cartao["limite_centavos"] | moeda if cartao["limite_centavos"] else "—" }}
                     </td>
                     <td class="num">
-                        <a class="acao" href="{{ url_for('faturas_cartao', cartao_id=cartao['id']) }}">Faturas</a>
+                        <a class="acao" href="{{ url_for('cartoes.faturas', cartao_id=cartao['id']) }}">Faturas</a>
                         {% if cartao["ativo"] %}
-                        <a class="acao" href="{{ url_for('nova_compra', cartao_id=cartao['id']) }}">Lançar compra</a>
+                        <a class="acao" href="{{ url_for('compras.nova', cartao_id=cartao['id']) }}">Lançar compra</a>
                         {% endif %}
-                        <a class="acao" href="{{ url_for('editar_cartao', cartao_id=cartao['id']) }}">Editar</a>
+                        <a class="acao" href="{{ url_for('cartoes.editar', cartao_id=cartao['id']) }}">Editar</a>
                         <form method="post" class="form-inline"
-                              action="{{ url_for('excluir_cartao', cartao_id=cartao['id']) }}"
+                              action="{{ url_for('cartoes.excluir', cartao_id=cartao['id']) }}"
                               onsubmit="return confirm('Excluir este cartão?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
@@ -69,7 +69,7 @@
     {% else %}
     <p class="vazio">
         Nenhum cartão cadastrado.<br>
-        <a href="{{ url_for('novo_cartao') }}">Cadastrar o primeiro cartão</a>
+        <a href="{{ url_for('cartoes.novo') }}">Cadastrar o primeiro cartão</a>
     </p>
     {% endif %}
 {% endblock %}

@@ -11,7 +11,7 @@
             </p>
         </div>
         {% if cartao["ativo"] %}
-        <a class="botao botao-primario" href="{{ url_for('nova_compra', cartao_id=cartao['id']) }}">+ Compra neste cartão</a>
+        <a class="botao botao-primario" href="{{ url_for('compras.nova', cartao_id=cartao['id']) }}">+ Compra neste cartão</a>
         {% endif %}
     </div>
 
@@ -38,9 +38,9 @@
     </div>
 
     {% if qtd_anteriores and not mostrar_anteriores %}
-    <p><a href="{{ url_for('faturas_cartao', cartao_id=cartao['id'], anteriores=1) }}">Ver também {{ qtd_anteriores }} fatura(s) anterior(es)</a></p>
+    <p><a href="{{ url_for('cartoes.faturas', cartao_id=cartao['id'], anteriores=1) }}">Ver também {{ qtd_anteriores }} fatura(s) anterior(es)</a></p>
     {% elif mostrar_anteriores %}
-    <p><a href="{{ url_for('faturas_cartao', cartao_id=cartao['id']) }}">Esconder faturas anteriores</a></p>
+    <p><a href="{{ url_for('cartoes.faturas', cartao_id=cartao['id']) }}">Esconder faturas anteriores</a></p>
     {% endif %}
 
     {% for fatura in faturas %}
@@ -70,7 +70,7 @@
                     <tr>
                         <td class="valor">{{ item["data_compra"] | data_br }}</td>
                         <td>
-                            <a href="{{ url_for('ver_compra', compra_id=item['compra_id']) }}">{{ item["descricao"] }}</a>
+                            <a href="{{ url_for('compras.ver', compra_id=item['compra_id']) }}">{{ item["descricao"] }}</a>
                             {% if item["parcela_total"] > 1 %}({{ item["parcela_numero"] }}/{{ item["parcela_total"] }}){% endif %}
                         </td>
                         <td>{{ item["categoria"] }}</td>
@@ -84,9 +84,9 @@
     {% else %}
     <p class="vazio">
         Nenhuma compra nas faturas deste cartão a partir deste mês.<br>
-        {% if cartao["ativo"] %}<a href="{{ url_for('nova_compra', cartao_id=cartao['id']) }}">Lançar uma compra</a>{% endif %}
+        {% if cartao["ativo"] %}<a href="{{ url_for('compras.nova', cartao_id=cartao['id']) }}">Lançar uma compra</a>{% endif %}
     </p>
     {% endfor %}
 
-    <p><a href="{{ url_for('cartoes') }}">← Voltar para os cartões</a></p>
+    <p><a href="{{ url_for('cartoes.listar') }}">← Voltar para os cartões</a></p>
 {% endblock %}

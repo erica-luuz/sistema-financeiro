@@ -7,9 +7,9 @@
         <h1>Lançamentos</h1>
         <div class="botoes-filtro">
             {# **request.args repassa os filtros da tela para o arquivo exportado #}
-            <a class="botao" href="{{ url_for('exportar_lancamentos', **request.args) }}"
+            <a class="botao" href="{{ url_for('lancamentos.exportar', **request.args) }}"
                title="Baixa os lançamentos filtrados num arquivo que abre no Excel">Exportar para Excel</a>
-            <a class="botao" href="{{ url_for('nova_compra') }}">+ Compra no cartão</a>
+            <a class="botao" href="{{ url_for('compras.nova') }}">+ Compra no cartão</a>
         </div>
     </div>
 
@@ -55,7 +55,7 @@
         <div class="botoes-filtro">
             <button type="submit" class="botao">Filtrar</button>
             {% if filtrando %}
-            <a href="{{ url_for('lancamentos') }}">Limpar filtros</a>
+            <a href="{{ url_for('lancamentos.listar') }}">Limpar filtros</a>
             {% endif %}
         </div>
     </form>
@@ -103,11 +103,11 @@
                     <td class="num">
                         {% if lancamento["compra_id"] %}
                         {# Parcelas são editadas e excluídas pela compra #}
-                        <a class="acao" href="{{ url_for('ver_compra', compra_id=lancamento['compra_id']) }}">Ver compra</a>
+                        <a class="acao" href="{{ url_for('compras.ver', compra_id=lancamento['compra_id']) }}">Ver compra</a>
                         {% else %}
-                        <a class="acao" href="{{ url_for('editar_lancamento', lancamento_id=lancamento['id']) }}">Editar</a>
+                        <a class="acao" href="{{ url_for('lancamentos.editar', lancamento_id=lancamento['id']) }}">Editar</a>
                         <form method="post" class="form-inline"
-                              action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
+                              action="{{ url_for('lancamentos.excluir', lancamento_id=lancamento['id']) }}"
                               onsubmit="return confirm('Excluir este lançamento?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
@@ -122,12 +122,12 @@
     {% elif filtrando %}
     <p class="vazio">
         Nenhum lançamento encontrado com esses filtros.<br>
-        <a href="{{ url_for('lancamentos') }}">Limpar filtros</a>
+        <a href="{{ url_for('lancamentos.listar') }}">Limpar filtros</a>
     </p>
     {% else %}
     <p class="vazio">
         Nenhum lançamento cadastrado ainda.<br>
-        <a href="{{ url_for('novo_lancamento') }}">Cadastrar o primeiro lançamento</a>
+        <a href="{{ url_for('lancamentos.novo') }}">Cadastrar o primeiro lançamento</a>
     </p>
     {% endif %}
 {% endblock %}

@@ -17,7 +17,7 @@
             ainda não foram lançadas:
             {% for r in recorrencias_pendentes %}{{ r["descricao"] }} ({{ r["valor_centavos"] | moeda }}){{ ", " if not loop.last }}{% endfor %}.
         </div>
-        <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}">
+        <form method="post" action="{{ url_for('recorrencias.gerar') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes_pendentes }}">
             <input type="hidden" name="voltar_para" value="dashboard">
@@ -38,7 +38,7 @@
         </div>
         <div class="botoes-filtro">
             <button type="submit" class="botao">Ver período</button>
-            <a href="{{ url_for('dashboard') }}">Mês atual</a>
+            <a href="{{ url_for('dashboard.inicio') }}">Mês atual</a>
         </div>
     </form>
 
@@ -63,14 +63,14 @@
     <p class="aviso">
         Compras no cartão feitas neste período: <strong class="valor">{{ compras_cartao["total"] | moeda }}</strong>
         ({{ compras_cartao["qtd"] }} compra(s)). Elas não entram no saldo acima: cada parcela conta no mês da fatura.
-        <a href="{{ url_for('cartoes') }}">Ver faturas</a>
+        <a href="{{ url_for('cartoes.listar') }}">Ver faturas</a>
     </p>
     {% endif %}
 
     <section class="painel">
         <div class="fatura-topo">
             <h2>Orçamento de {{ (mes_orcamento ~ "-01") | mes_ano }}</h2>
-            <a href="{{ url_for('orcamento', mes=mes_orcamento) }}">{{ "Ajustar" if orcamento_itens else "Definir orçamento" }}</a>
+            <a href="{{ url_for('orcamento.mes', mes=mes_orcamento) }}">{{ "Ajustar" if orcamento_itens else "Definir orçamento" }}</a>
         </div>
         {% if orcamento_itens %}
         <ul class="barras">
@@ -105,7 +105,7 @@
                     {% for item in proximas_faturas %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('faturas_cartao', cartao_id=item['cartao']['id']) }}">{{ item["cartao"]["nome"] }}</a><br>
+                            <a href="{{ url_for('cartoes.faturas', cartao_id=item['cartao']['id']) }}">{{ item["cartao"]["nome"] }}</a><br>
                             <span class="pct">{{ item["cartao"]["titular"] }}</span>
                         </td>
                         <td>
@@ -194,11 +194,11 @@
                     </tbody>
                 </table>
             </div>
-            <p><a href="{{ url_for('lancamentos') }}">Ver todos os lançamentos</a></p>
+            <p><a href="{{ url_for('lancamentos.listar') }}">Ver todos os lançamentos</a></p>
             {% else %}
             <p class="vazio">
                 Nenhum lançamento neste período.<br>
-                <a href="{{ url_for('novo_lancamento') }}">Cadastrar um lançamento</a>
+                <a href="{{ url_for('lancamentos.novo') }}">Cadastrar um lançamento</a>
             </p>
             {% endif %}
         </section>

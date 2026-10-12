@@ -135,7 +135,7 @@ def test_orcamento_previsto_gasto_e_projecao(logado, banco):
     })
     recorrencia(logado, banco, descricao="Vale", valor="100", categoria_id=alimentacao, dia_do_mes="25")
 
-    from app import buscar_orcamento
+    from modulos.orcamento import buscar_orcamento
     item = next(i for i in buscar_orcamento(banco, "2026-10") if i["id"] == alimentacao)
     assert (item["previsto"], item["realizado"], item["pendentes"], item["projecao"]) == (30000, 25000, 10000, 35000)
     assert item["faixa_projecao"] == "estourou"

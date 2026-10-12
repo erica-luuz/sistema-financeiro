@@ -96,7 +96,7 @@ def destino_seguro(proximo):
     """
     if proximo and proximo.startswith("/") and not proximo.startswith("//"):
         return proximo
-    return url_for("dashboard")
+    return url_for("dashboard.inicio")
 
 
 @bp.before_app_request
@@ -122,7 +122,7 @@ def exigir_login():
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if g.usuario:
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("dashboard.inicio"))
     proximo = request.values.get("proximo", "")
 
     if request.method == "POST":
@@ -201,7 +201,7 @@ def trocar_senha():
         conn.close()
         # flash: uma mensagem que aparece UMA vez, na próxima página exibida
         flash("Senha alterada com sucesso.", "sucesso")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("dashboard.inicio"))
 
     return render_template("trocar_senha.html")
 

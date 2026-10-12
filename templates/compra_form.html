@@ -17,7 +17,7 @@
     {% if not cartoes %}
     <p class="vazio">
         Nenhum cartão ativo cadastrado.<br>
-        <a href="{{ url_for('novo_cartao') }}">Cadastrar um cartão</a>
+        <a href="{{ url_for('cartoes.novo') }}">Cadastrar um cartão</a>
     </p>
     {% else %}
     <form method="post" class="painel formulario">
@@ -90,7 +90,7 @@
             <button type="submit" class="botao botao-primario">
                 {{ "Salvar alterações" if compra else "Lançar compra" }}
             </button>
-            <a href="{{ url_for('ver_compra', compra_id=compra['id']) if compra else url_for('lancamentos') }}">Cancelar</a>
+            <a href="{{ url_for('compras.ver', compra_id=compra['id']) if compra else url_for('lancamentos.listar') }}">Cancelar</a>
         </div>
     </form>
     {% endif %}

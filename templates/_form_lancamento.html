@@ -59,7 +59,7 @@
         </select>
     </div>
     <p class="ajuda">
-        Comprou no cartão de crédito? <a href="{{ url_for('nova_compra') }}">Lance como compra no cartão</a>
+        Comprou no cartão de crédito? <a href="{{ url_for('compras.nova') }}">Lance como compra no cartão</a>
         — o sistema calcula a fatura e as parcelas.
     </p>
 
@@ -70,7 +70,7 @@
 
     <div class="botoes-form">
         <button type="submit" class="botao botao-primario">{{ texto_botao }}</button>
-        <a href="{{ url_for('lancamentos') }}">Cancelar</a>
+        <a href="{{ url_for('lancamentos.listar') }}">Cancelar</a>
     </div>
 </form>
 

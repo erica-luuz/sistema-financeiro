@@ -67,7 +67,7 @@
             <button type="submit" class="botao botao-primario">
                 {{ "Salvar alterações" if cartao else "Cadastrar cartão" }}
             </button>
-            <a href="{{ url_for('cartoes') }}">Cancelar</a>
+            <a href="{{ url_for('cartoes.listar') }}">Cancelar</a>
         </div>
     </form>
 {% endblock %}

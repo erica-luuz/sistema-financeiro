@@ -8,7 +8,7 @@
             <h1>Contas recorrentes</h1>
             <p class="subtitulo">Contas que se repetem todo mês: cadastre uma vez e lance com um clique.</p>
         </div>
-        <a class="botao" href="{{ url_for('nova_recorrencia') }}">+ Nova conta recorrente</a>
+        <a class="botao" href="{{ url_for('recorrencias.nova') }}">+ Nova conta recorrente</a>
     </div>
 
     {% if pendentes %}
@@ -16,7 +16,7 @@
         <div>
             <strong>{{ pendentes | length }} conta(s) de {{ (mes ~ "-01") | mes_ano }}</strong> ainda não foram lançadas.
         </div>
-        <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}">
+        <form method="post" action="{{ url_for('recorrencias.gerar') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes }}">
             <button type="submit" class="botao botao-primario">Lançar agora</button>
@@ -56,9 +56,9 @@
                     </td>
                     <td class="num valor {{ r['tipo'] }}">{{ r["valor_centavos"] | moeda }}</td>
                     <td class="num">
-                        <a class="acao" href="{{ url_for('editar_recorrencia', recorrencia_id=r['id']) }}">Editar</a>
+                        <a class="acao" href="{{ url_for('recorrencias.editar', recorrencia_id=r['id']) }}">Editar</a>
                         <form method="post" class="form-inline"
-                              action="{{ url_for('excluir_recorrencia', recorrencia_id=r['id']) }}"
+                              action="{{ url_for('recorrencias.excluir', recorrencia_id=r['id']) }}"
                               onsubmit="return confirm('Excluir esta conta recorrente? Os lançamentos já gerados continuam.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
@@ -70,7 +70,7 @@
         </table>
     </div>
 
-    <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}" class="painel filtros">
+    <form method="post" action="{{ url_for('recorrencias.gerar') }}" class="painel filtros">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
             <label for="mes">Lançar as contas de outro mês</label>
@@ -86,7 +86,7 @@
     {% else %}
     <p class="vazio">
         Nenhuma conta recorrente cadastrada.<br>
-        <a href="{{ url_for('nova_recorrencia') }}">Cadastrar aluguel, internet, assinaturas...</a>
+        <a href="{{ url_for('recorrencias.nova') }}">Cadastrar aluguel, internet, assinaturas...</a>
     </p>
     {% endif %}
 {% endblock %}

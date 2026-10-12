@@ -9,11 +9,11 @@
             <p class="subtitulo">Quanto vocês planejam gastar em cada categoria × quanto já foi gasto.</p>
         </div>
         <div class="botoes-filtro">
-            <a class="botao" href="{{ url_for('orcamento', mes=mes_anterior) }}" aria-label="Mês anterior">‹</a>
+            <a class="botao" href="{{ url_for('orcamento.mes', mes=mes_anterior) }}" aria-label="Mês anterior">‹</a>
             <form method="get" class="form-inline">
                 <input type="month" name="mes" value="{{ mes }}" onchange="this.form.submit()" aria-label="Escolher mês">
             </form>
-            <a class="botao" href="{{ url_for('orcamento', mes=mes_seguinte) }}" aria-label="Mês seguinte">›</a>
+            <a class="botao" href="{{ url_for('orcamento.mes', mes=mes_seguinte) }}" aria-label="Mês seguinte">›</a>
         </div>
     </div>
 
@@ -24,7 +24,7 @@
     {% if not resumo["tem_orcamento"] and tem_anterior %}
     <div class="aviso aviso-acao">
         <div>Este mês ainda não tem orçamento. Quer usar os mesmos valores de {{ (mes_anterior ~ "-01") | mes_ano }}?</div>
-        <form method="post" action="{{ url_for('copiar_orcamento') }}">
+        <form method="post" action="{{ url_for('orcamento.copiar') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes }}">
             <button type="submit" class="botao botao-primario">Copiar do mês anterior</button>
@@ -38,7 +38,7 @@
             {{ resumo["sem_orcamento_com_fixas"] }} categoria(s) sem orçamento têm contas fixas neste mês.
             Quer usar o valor das contas fixas como ponto de partida? Depois é só ajustar.
         </div>
-        <form method="post" action="{{ url_for('preencher_orcamento_com_fixas') }}">
+        <form method="post" action="{{ url_for('orcamento.preencher_fixas') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes }}">
             <button type="submit" class="botao">Preencher com as contas fixas</button>

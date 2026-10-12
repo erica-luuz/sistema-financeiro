@@ -13,9 +13,9 @@
             </p>
         </div>
         <div class="botoes-filtro">
-            <a class="botao" href="{{ url_for('editar_compra', compra_id=compra['id']) }}">Editar compra</a>
+            <a class="botao" href="{{ url_for('compras.editar', compra_id=compra['id']) }}">Editar compra</a>
             <form method="post" class="form-inline"
-                  action="{{ url_for('excluir_compra', compra_id=compra['id']) }}"
+                  action="{{ url_for('compras.excluir', compra_id=compra['id']) }}"
                   onsubmit="return confirm('Excluir esta compra e todas as {{ compra['parcelas'] }} parcela(s)?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="acao acao-perigo">Excluir compra</button>
@@ -64,5 +64,5 @@
     <p class="subtitulo">Observação: {{ compra["observacao"] }}</p>
     {% endif %}
 
-    <p><a href="{{ url_for('lancamentos') }}">← Voltar para os lançamentos</a></p>
+    <p><a href="{{ url_for('lancamentos.listar') }}">← Voltar para os lançamentos</a></p>
 {% endblock %}

@@ -5,7 +5,7 @@
 {% block conteudo %}
     <div class="cabecalho-pagina">
         <h1>Categorias</h1>
-        <a class="botao" href="{{ url_for('nova_categoria') }}">+ Nova categoria</a>
+        <a class="botao" href="{{ url_for('categorias.nova') }}">+ Nova categoria</a>
     </div>
 
     {% if erro %}
@@ -30,7 +30,7 @@
                     <td class="num valor">{{ categoria["qtd_lancamentos"] }}</td>
                     <td class="num">
                         <form method="post" class="form-inline"
-                              action="{{ url_for('excluir_categoria', categoria_id=categoria['id']) }}"
+                              action="{{ url_for('categorias.excluir', categoria_id=categoria['id']) }}"
                               onsubmit="return confirm('Excluir esta categoria?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
