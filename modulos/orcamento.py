@@ -1,7 +1,7 @@
 """Orçamento mensal por categoria: previsto × gasto, contas fixas e projeção do mês."""
 from datetime import date
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from db import get_db_connection
 from util import (
@@ -170,6 +170,7 @@ def mes():
                             (categoria_id, mes, valor),
                         )
             conn.close()
+            flash("Orçamento salvo.", "sucesso")
             return redirect(url_for("orcamento.mes", mes=mes))
 
     itens = buscar_orcamento(conn, mes)
@@ -206,6 +207,7 @@ def copiar():
     )
     conn.commit()
     conn.close()
+    flash("Valores copiados do mês anterior.", "sucesso")
     return redirect(url_for("orcamento.mes", mes=mes))
 
 
@@ -224,4 +226,5 @@ def preencher_fixas():
                 (categoria_id, mes, totais["fixas"]),
             )
     conn.close()
+    flash("Categorias sem orçamento preenchidas com o valor das contas fixas.", "sucesso")
     return redirect(url_for("orcamento.mes", mes=mes))

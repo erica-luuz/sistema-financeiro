@@ -1,7 +1,7 @@
 """Compras no cartão de crédito: cada compra vira uma parcela por fatura."""
 from datetime import date
 
-from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 import relogio
 from db import get_db_connection
@@ -139,6 +139,7 @@ def nova():
             compra_id = cursor.lastrowid   # o id que o banco acabou de gerar para a compra
             gravar_parcelas(conn, compra_id, dados, cartao)
         conn.close()
+        flash(f"Compra \"{dados['descricao']}\" lançada em {dados['parcelas']} parcela(s).", "sucesso")
         return redirect(url_for("compras.ver", compra_id=compra_id))
 
     # GET: cartão pré-escolhido se veio da página de cartões (?cartao_id=...)
@@ -217,6 +218,7 @@ def editar(compra_id):
                 mes_referencia=origem["mes_referencia"] if origem else None,
             )
         conn.close()
+        flash("Compra atualizada. As parcelas foram recalculadas.", "sucesso")
         return redirect(url_for("compras.ver", compra_id=compra_id))
 
     conn.close()
@@ -230,4 +232,5 @@ def excluir(compra_id):
     conn.execute("DELETE FROM compras_cartao WHERE id = ?", (compra_id,))
     conn.commit()
     conn.close()
+    flash("Compra excluída, junto com todas as parcelas.", "sucesso")
     return redirect(url_for("lancamentos.listar"))

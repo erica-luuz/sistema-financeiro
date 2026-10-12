@@ -163,6 +163,7 @@ def test_dashboard_totais_e_compra_no_mes_da_fatura(logado, banco, cartao):
         "categoria_id": id_categoria(banco, "Salário", "receita"), "forma_pagamento": "transferencia", "observacao": "",
     })
     comprar(logado, banco, cartao, valor="300", parcelas="1", data_compra="2026-10-25")   # fatura de 10/11
+    logado.get("/categorias")   # exibe (e descarta) a mensagem "Compra lançada"
     html_out = logado.get("/?inicio=2026-10-01&fim=2026-10-31").get_data(as_text=True)
     html_nov = logado.get("/?inicio=2026-11-01&fim=2026-11-30").get_data(as_text=True)
     assert "R$ 5.000,00" in html_out and "Geladeira" not in html_out

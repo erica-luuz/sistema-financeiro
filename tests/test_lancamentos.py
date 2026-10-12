@@ -1,5 +1,6 @@
 """Testes dos lançamentos e categorias: criar, editar, excluir, filtrar, exportar."""
 import csv
+import html
 import io
 
 import pytest
@@ -27,6 +28,18 @@ def lancamentos(banco):
 def test_criar_lancamento_grava_em_centavos(logado, banco):
     assert novo(logado, banco).status_code == 302
     assert [tuple(l) for l in lancamentos(banco)] == [("Supermercado", 25050, "despesa", "2026-10-09", "pix")]
+
+
+def test_mensagem_de_confirmacao_aparece_uma_vez(logado, banco):
+    novo(logado, banco)
+    pagina = html.unescape(logado.get("/lancamentos").get_data(as_text=True))
+    assert 'Lançamento "Supermercado" salvo.' in pagina
+    assert "salvo." not in logado.get("/lancamentos").get_data(as_text=True)   # flash some depois de exibido
+
+
+def descartar_mensagens(logado):
+    """Abre uma página qualquer para a mensagem de confirmação ("... salvo.") ser exibida e sumir."""
+    logado.get("/categorias")
 
 
 @pytest.mark.parametrize("valor, centavos", [("19.99", 1999), ("0.1", 10), ("1234.5", 123450), ("250,50", 25050)])
@@ -96,14 +109,16 @@ def test_filtros_combinados(logado, banco):
     novo(logado, banco, descricao="Mercado set", data="2026-09-05")
     novo(logado, banco, descricao="Salário", tipo="receita", forma_pagamento="transferencia",
          categoria_id=id_categoria(banco, "Salário", "receita"), valor="5000", data="2026-10-05")
-    html = logado.get("/lancamentos?inicio=2026-10-01&fim=2026-10-31&tipo=despesa").get_data(as_text=True)
-    assert "Mercado out" in html and "Mercado set" not in html and "Salário</td>" not in html
+    descartar_mensagens(logado)
+    pagina = logado.get("/lancamentos?inicio=2026-10-01&fim=2026-10-31&tipo=despesa").get_data(as_text=True)
+    assert "Mercado out" in pagina and "Mercado set" not in pagina and "Salário</td>" not in pagina
 
 
 def test_filtro_nao_aceita_sql_injection(logado, banco):
     novo(logado, banco)
-    html = logado.get("/lancamentos?tipo=despesa' OR 1=1 --").get_data(as_text=True)
-    assert "Supermercado" not in html
+    descartar_mensagens(logado)
+    pagina = logado.get("/lancamentos?tipo=despesa' OR 1=1 --").get_data(as_text=True)
+    assert "Supermercado" not in pagina
 
 
 # ---------- exportar ----------

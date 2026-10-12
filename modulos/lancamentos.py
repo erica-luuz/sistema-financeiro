@@ -2,7 +2,7 @@
 import csv
 import io
 
-from flask import Blueprint, Response, abort, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, flash, redirect, render_template, request, url_for
 
 import relogio
 from db import get_db_connection
@@ -271,6 +271,7 @@ def novo():
         conn.close()
 
         # Manda o navegador para outra página (evita duplicar ao apertar F5)
+        flash(f"Lançamento \"{dados['descricao']}\" salvo.", "sucesso")
         return redirect(url_for("lancamentos.listar"))
 
     # GET: formulário vazio, já com a data de hoje e o tipo "despesa"
@@ -332,6 +333,7 @@ def editar(lancamento_id):
         )
         conn.commit()
         conn.close()
+        flash(f"Lançamento \"{dados['descricao']}\" atualizado.", "sucesso")
         return redirect(url_for("lancamentos.listar"))
 
     # GET: mostrar o formulário já preenchido com os dados atuais
@@ -358,4 +360,5 @@ def excluir(lancamento_id):
     conn.execute("DELETE FROM lancamentos WHERE id = ?", (lancamento_id,))  # o WHERE é essencial!
     conn.commit()
     conn.close()
+    flash("Lançamento excluído.", "sucesso")
     return redirect(url_for("lancamentos.listar"))

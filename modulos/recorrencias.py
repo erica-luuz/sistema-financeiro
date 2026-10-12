@@ -1,7 +1,7 @@
 """Contas recorrentes: cadastradas uma vez, lançadas mês a mês sem duplicar."""
 import calendar
 
-from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from db import get_db_connection
 from util import (
@@ -199,6 +199,7 @@ def nova():
         )
         conn.commit()
         conn.close()
+        flash(f"Conta recorrente \"{dados['descricao']}\" cadastrada.", "sucesso")
         return redirect(url_for("recorrencias.listar"))
 
     dados = {"tipo": "despesa", "forma_pagamento": "pix", "mes_inicio": mes_atual(), "ativa": "1"}
@@ -234,6 +235,7 @@ def editar(recorrencia_id):
         )
         conn.commit()
         conn.close()
+        flash("Conta recorrente atualizada. A mudança vale para os próximos meses.", "sucesso")
         return redirect(url_for("recorrencias.listar"))
 
     conn.close()
@@ -249,6 +251,7 @@ def excluir(recorrencia_id):
     conn.execute("DELETE FROM recorrencias WHERE id = ?", (recorrencia_id,))
     conn.commit()
     conn.close()
+    flash("Conta recorrente excluída. Os lançamentos já gerados continuam.", "sucesso")
     return redirect(url_for("recorrencias.listar"))
 
 
@@ -258,8 +261,12 @@ def gerar():
     if not mes_valido(mes):
         mes = mes_atual()
     conn = get_db_connection()
-    gerar_recorrencias(conn, mes)
+    quantidade = gerar_recorrencias(conn, mes)
     conn.close()
+    if quantidade:
+        flash(f"{quantidade} conta(s) recorrente(s) lançada(s).", "sucesso")
+    else:
+        flash("Nenhuma conta recorrente pendente nesse mês.", "sucesso")
     # Volta para a página de onde veio o clique (dashboard ou recorrências)
     destino = request.form.get("voltar_para")
     if destino == "dashboard":

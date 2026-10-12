@@ -1,7 +1,7 @@
 """Categorias: listar, criar e excluir (com proteção para categorias em uso)."""
 import sqlite3
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from db import get_db_connection
 from util import sem_acento
@@ -80,6 +80,7 @@ def nova():
         finally:
             conn.close()  # o finally roda sempre: com ou sem erro
 
+        flash(f"Categoria \"{nome}\" criada.", "sucesso")
         return redirect(url_for("categorias.listar"))
 
     return render_template("nova_categoria.html")
@@ -113,4 +114,5 @@ def excluir(categoria_id):
     finally:
         conn.close()
 
+    flash("Categoria excluída.", "sucesso")
     return redirect(url_for("categorias.listar"))

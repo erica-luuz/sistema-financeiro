@@ -2,7 +2,7 @@
 import sqlite3
 from datetime import date
 
-from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 import relogio
 from db import get_db_connection
@@ -108,6 +108,7 @@ def novo():
                     valores_cartao(dados),
                 )
                 conn.commit()
+                flash(f"Cartão \"{dados['nome']}\" cadastrado.", "sucesso")
                 return redirect(url_for("cartoes.listar"))
             except sqlite3.IntegrityError:
                 erro = cartao_repetido(dados)
@@ -144,6 +145,7 @@ def editar(cartao_id):
                 )
                 conn.commit()
                 conn.close()
+                flash("Cartão atualizado.", "sucesso")
                 return redirect(url_for("cartoes.listar"))
             except sqlite3.IntegrityError:
                 erro = cartao_repetido(dados)
@@ -264,4 +266,5 @@ def excluir(cartao_id):
         return render_template("cartoes.html", cartoes=buscar_cartoes(), erro=erro)
     finally:
         conn.close()
+    flash("Cartão excluído.", "sucesso")
     return redirect(url_for("cartoes.listar"))
