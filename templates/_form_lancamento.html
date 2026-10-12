@@ -50,6 +50,15 @@
     </div>
 
     <div class="campo">
+        <label for="forma_pagamento">Forma de pagamento</label>
+        <select id="forma_pagamento" name="forma_pagamento" required>
+            {% for chave, texto in FORMAS_FORMULARIO.items() %}
+            <option value="{{ chave }}" {% if dados.get('forma_pagamento') == chave %}selected{% endif %}>{{ texto }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="campo">
         <label for="observacao">Observação (opcional)</label>
         <textarea id="observacao" name="observacao">{{ dados.get('observacao', '') }}</textarea>
     </div>

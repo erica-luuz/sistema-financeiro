@@ -75,7 +75,7 @@
                         <tr>
                             <td>
                                 {{ lancamento["descricao"] }}<br>
-                                <span class="pct">{{ lancamento["data"] | data_br }} · {{ lancamento["categoria"] }}</span>
+                                <span class="pct">{{ lancamento["data"] | data_br }} · {{ lancamento["categoria"] }} · {{ lancamento["forma_pagamento"] | forma }}</span>
                             </td>
                             <td class="num valor {{ lancamento['tipo'] }}">
                                 {{ "+" if lancamento["tipo"] == "receita" else "−" }} {{ lancamento["valor_centavos"] | moeda }}

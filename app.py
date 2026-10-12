@@ -67,7 +67,32 @@ def tipo_confere_com_categoria(conn, categoria_id, tipo):
     return categoria is not None and categoria["tipo"] == tipo
 
 
-CAMPOS_LANCAMENTO = ("descricao", "valor", "tipo", "data", "categoria_id", "observacao")
+# Formas de pagamento: valor no banco → texto na tela (a ordem é a das listas)
+FORMAS_PAGAMENTO = {
+    "pix": "Pix",
+    "debito": "Débito",
+    "credito": "Crédito",
+    "dinheiro": "Dinheiro",
+    "boleto": "Boleto",
+    "transferencia": "Transferência",
+}
+# No formulário comum, sem "credito": compras no crédito são lançadas pelo cartão (Etapa 12)
+FORMAS_FORMULARIO = {chave: texto for chave, texto in FORMAS_PAGAMENTO.items() if chave != "credito"}
+
+# Deixa os dicionários disponíveis em todos os templates
+app.jinja_env.globals["FORMAS_PAGAMENTO"] = FORMAS_PAGAMENTO
+app.jinja_env.globals["FORMAS_FORMULARIO"] = FORMAS_FORMULARIO
+
+
+@app.template_filter("forma")
+def forma(chave):
+    """'debito' → 'Débito'."""
+    return FORMAS_PAGAMENTO.get(chave, chave)
+
+
+CAMPOS_LANCAMENTO = (
+    "descricao", "valor", "tipo", "data", "categoria_id", "forma_pagamento", "observacao",
+)
 
 
 def ler_formulario_lancamento():
@@ -83,6 +108,7 @@ def dados_do_lancamento(lancamento):
         "tipo": lancamento["tipo"],
         "data": lancamento["data"],
         "categoria_id": str(lancamento["categoria_id"]),
+        "forma_pagamento": lancamento["forma_pagamento"],
         "observacao": lancamento["observacao"] or "",
     }
 
@@ -104,6 +130,8 @@ def validar_lancamento(conn, dados):
         return "O valor deve ser maior que zero."
     if not dados["data"]:
         return "Informe a data."
+    if dados["forma_pagamento"] not in FORMAS_FORMULARIO:
+        return "Escolha a forma de pagamento."
     if not tipo_confere_com_categoria(conn, dados["categoria_id"], dados["tipo"]):
         return "O tipo do lançamento não corresponde ao tipo da categoria. Escolha uma categoria de " + (
             "receita." if dados["tipo"] == "receita" else "despesa."
@@ -161,7 +189,8 @@ def dashboard():
     # Os 5 lançamentos mais recentes do período
     ultimos = conn.execute(
         """
-        SELECT l.descricao, l.valor_centavos, l.tipo, l.data, c.nome AS categoria
+        SELECT l.descricao, l.valor_centavos, l.tipo, l.data, l.forma_pagamento,
+               c.nome AS categoria
         FROM lancamentos l
         JOIN categorias c ON c.id = l.categoria_id
         WHERE l.data BETWEEN ? AND ?
@@ -261,6 +290,7 @@ def lancamentos():
         "fim": request.args.get("fim", ""),
         "tipo": request.args.get("tipo", ""),
         "categoria_id": request.args.get("categoria_id", ""),
+        "forma_pagamento": request.args.get("forma_pagamento", ""),
     }
 
     # Monta o WHERE aos poucos: só entram as condições que foram preenchidas.
@@ -279,6 +309,9 @@ def lancamentos():
     if filtros["categoria_id"]:
         condicoes.append("l.categoria_id = ?")
         parametros.append(filtros["categoria_id"])
+    if filtros["forma_pagamento"]:
+        condicoes.append("l.forma_pagamento = ?")
+        parametros.append(filtros["forma_pagamento"])
 
     where = ""
     if condicoes:
@@ -287,7 +320,8 @@ def lancamentos():
     conn = get_db_connection()
     lancamentos = conn.execute(
         f"""
-        SELECT l.id, l.descricao, l.valor_centavos, l.tipo, l.data, c.nome AS categoria
+        SELECT l.id, l.descricao, l.valor_centavos, l.tipo, l.data, l.forma_pagamento,
+               c.nome AS categoria
         FROM lancamentos l
         JOIN categorias c ON c.id = l.categoria_id
         {where}
@@ -329,14 +363,16 @@ def novo_lancamento():
 
         # Grava no banco. Os "?" protegem contra SQL Injection
         conn.execute(
-            "INSERT INTO lancamentos (descricao, valor_centavos, tipo, data, categoria_id, observacao) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO lancamentos "
+            "(descricao, valor_centavos, tipo, data, categoria_id, forma_pagamento, observacao) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 dados["descricao"],
                 para_centavos(dados["valor"]),
                 dados["tipo"],
                 dados["data"],  # já vem como AAAA-MM-DD
                 dados["categoria_id"],
+                dados["forma_pagamento"],
                 dados["observacao"] or None,
             ),
         )
@@ -347,7 +383,7 @@ def novo_lancamento():
         return redirect(url_for("lancamentos"))
 
     # GET: formulário vazio, já com a data de hoje e o tipo "despesa"
-    dados = {"tipo": "despesa", "data": date.today().isoformat()}
+    dados = {"tipo": "despesa", "data": date.today().isoformat(), "forma_pagamento": "pix"}
     return render_template("novo_lancamento.html", dados=dados, categorias=buscar_categorias())
 
 
@@ -383,7 +419,7 @@ def editar_lancamento(lancamento_id):
             """
             UPDATE lancamentos
                SET descricao = ?, valor_centavos = ?, tipo = ?, data = ?,
-                   categoria_id = ?, observacao = ?,
+                   categoria_id = ?, forma_pagamento = ?, observacao = ?,
                    atualizado_em = CURRENT_TIMESTAMP
              WHERE id = ?
             """,
@@ -393,6 +429,7 @@ def editar_lancamento(lancamento_id):
                 dados["tipo"],
                 dados["data"],
                 dados["categoria_id"],
+                dados["forma_pagamento"],
                 dados["observacao"] or None,
                 lancamento_id,
             ),

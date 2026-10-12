@@ -37,6 +37,15 @@
                 {% endfor %}
             </select>
         </div>
+        <div>
+            <label for="forma_pagamento">Pagamento</label>
+            <select id="forma_pagamento" name="forma_pagamento">
+                <option value="">Todas</option>
+                {% for chave, texto in FORMAS_PAGAMENTO.items() %}
+                <option value="{{ chave }}" {% if filtros['forma_pagamento'] == chave %}selected{% endif %}>{{ texto }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <div class="botoes-filtro">
             <button type="submit" class="botao">Filtrar</button>
             {% if filtrando %}
@@ -60,6 +69,7 @@
                     <th>Descrição</th>
                     <th>Categoria</th>
                     <th>Tipo</th>
+                    <th>Pagamento</th>
                     <th class="num">Valor</th>
                     <th class="num">Ações</th>
                 </tr>
@@ -71,6 +81,7 @@
                     <td>{{ lancamento["descricao"] }}</td>
                     <td>{{ lancamento["categoria"] }}</td>
                     <td><span class="selo selo-{{ lancamento['tipo'] }}">{{ lancamento["tipo"] | capitalize }}</span></td>
+                    <td>{{ lancamento["forma_pagamento"] | forma }}</td>
                     <td class="num valor {{ lancamento['tipo'] }}">{{ lancamento["valor_centavos"] | moeda }}</td>
                     <td class="num">
                         <a class="acao" href="{{ url_for('editar_lancamento', lancamento_id=lancamento['id']) }}">Editar</a>
