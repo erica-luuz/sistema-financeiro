@@ -2,8 +2,9 @@
 venv/
 .venv/
 
-# Banco de dados local
+# Banco de dados local e backups (dados pessoais)
 database.db
+backups/
 
 # Cache do Python
 __pycache__/
