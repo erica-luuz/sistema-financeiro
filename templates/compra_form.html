@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <div>
+            <h1>{{ titulo }}</h1>
+            <p class="subtitulo">Cada parcela entra como despesa no mês da fatura em que ela vence.</p>
+        </div>
+    </div>
+
+    {% if erro %}
+    <p class="alerta">{{ erro }}</p>
+    {% endif %}
+
+    {% if not cartoes %}
+    <p class="vazio">
+        Nenhum cartão ativo cadastrado.<br>
+        <a href="{{ url_for('novo_cartao') }}">Cadastrar um cartão</a>
+    </p>
+    {% else %}
+    <form method="post" class="painel formulario">
+        <div class="campo">
+            <label for="cartao_id">Cartão</label>
+            <select id="cartao_id" name="cartao_id" required>
+                {% for cartao in cartoes %}
+                <option value="{{ cartao['id'] }}"
+                        {% if dados.get('cartao_id') == cartao['id'] | string %}selected{% endif %}>
+                    {{ cartao['nome'] }} — {{ cartao['titular'] }} (fecha dia {{ cartao['dia_fechamento'] }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="campo">
+            <label for="descricao">Descrição</label>
+            <input type="text" id="descricao" name="descricao" value="{{ dados.get('descricao', '') }}"
+                   placeholder="Ex.: Geladeira" required>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="valor">Valor total (R$)</label>
+                <input type="number" id="valor" name="valor" step="0.01" min="0.01"
+                       value="{{ dados.get('valor', '') }}" placeholder="0,00" required>
+            </div>
+            <div class="campo">
+                <label for="parcelas">Parcelas</label>
+                <select id="parcelas" name="parcelas" required>
+                    {% for n in range(1, 25) %}
+                    <option value="{{ n }}" {% if dados.get('parcelas') == n | string %}selected{% endif %}>
+                        {{ "À vista" if n == 1 else n ~ "x" }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="data_compra">Data da compra</label>
+                <input type="date" id="data_compra" name="data_compra"
+                       value="{{ dados.get('data_compra', '') }}" required>
+            </div>
+            <div class="campo">
+                <label for="categoria_id">Categoria</label>
+                <select id="categoria_id" name="categoria_id" required>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria['id'] }}"
+                            {% if dados.get('categoria_id') == categoria['id'] | string %}selected{% endif %}>
+                        {{ categoria['nome'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="campo">
+            <label for="observacao">Observação (opcional)</label>
+            <textarea id="observacao" name="observacao">{{ dados.get('observacao', '') }}</textarea>
+        </div>
+
+        {% if compra %}
+        <p class="ajuda">Ao salvar, as parcelas são recalculadas a partir destes dados.</p>
+        {% endif %}
+
+        <div class="botoes-form">
+            <button type="submit" class="botao botao-primario">
+                {{ "Salvar alterações" if compra else "Lançar compra" }}
+            </button>
+            <a href="{{ url_for('ver_compra', compra_id=compra['id']) if compra else url_for('lancamentos') }}">Cancelar</a>
+        </div>
+    </form>
+    {% endif %}
+{% endblock %}

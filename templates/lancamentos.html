@@ -5,6 +5,7 @@
 {% block conteudo %}
     <div class="cabecalho-pagina">
         <h1>Lançamentos</h1>
+        <a class="botao" href="{{ url_for('nova_compra') }}">+ Compra no cartão</a>
     </div>
 
     <!-- Filtros: GET, porque só consultam -->
@@ -78,18 +79,31 @@
                 {% for lancamento in lancamentos %}
                 <tr>
                     <td class="valor">{{ lancamento["data"] | data_br }}</td>
-                    <td>{{ lancamento["descricao"] }}</td>
+                    <td>
+                        {{ lancamento["descricao"] }}
+                        {% if lancamento["parcela_total"] and lancamento["parcela_total"] > 1 %}
+                        ({{ lancamento["parcela_numero"] }}/{{ lancamento["parcela_total"] }})
+                        {% endif %}
+                        {% if lancamento["compra_id"] %}
+                        <br><span class="pct">{{ lancamento["cartao"] }} — {{ lancamento["titular"] }} · compra em {{ lancamento["data_compra"] | data_br }}</span>
+                        {% endif %}
+                    </td>
                     <td>{{ lancamento["categoria"] }}</td>
                     <td><span class="selo selo-{{ lancamento['tipo'] }}">{{ lancamento["tipo"] | capitalize }}</span></td>
                     <td>{{ lancamento["forma_pagamento"] | forma }}</td>
                     <td class="num valor {{ lancamento['tipo'] }}">{{ lancamento["valor_centavos"] | moeda }}</td>
                     <td class="num">
+                        {% if lancamento["compra_id"] %}
+                        {# Parcelas são editadas e excluídas pela compra #}
+                        <a class="acao" href="{{ url_for('ver_compra', compra_id=lancamento['compra_id']) }}">Ver compra</a>
+                        {% else %}
                         <a class="acao" href="{{ url_for('editar_lancamento', lancamento_id=lancamento['id']) }}">Editar</a>
                         <form method="post" class="form-inline"
                               action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
                               onsubmit="return confirm('Excluir este lançamento?');">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

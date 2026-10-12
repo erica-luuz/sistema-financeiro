@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ compra["descricao"] }}{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <div>
+            <h1>{{ compra["descricao"] }}</h1>
+            <p class="subtitulo">
+                {{ compra["cartao"] }} — {{ compra["titular"] }} ·
+                comprado em {{ compra["data_compra"] | data_br }} ·
+                {{ compra["categoria"] }}
+            </p>
+        </div>
+        <div class="botoes-filtro">
+            <a class="botao" href="{{ url_for('editar_compra', compra_id=compra['id']) }}">Editar compra</a>
+            <form method="post" class="form-inline"
+                  action="{{ url_for('excluir_compra', compra_id=compra['id']) }}"
+                  onsubmit="return confirm('Excluir esta compra e todas as {{ compra['parcelas'] }} parcela(s)?');">
+                <button type="submit" class="acao acao-perigo">Excluir compra</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="cartoes">
+        <div class="cartao">
+            <p class="rotulo">Valor total</p>
+            <p class="valor despesa">{{ compra["valor_total_centavos"] | moeda }}</p>
+        </div>
+        <div class="cartao">
+            <p class="rotulo">Parcelas</p>
+            <p class="valor">{{ "À vista" if compra["parcelas"] == 1 else compra["parcelas"] ~ "x" }}</p>
+        </div>
+        <div class="cartao">
+            <p class="rotulo">Primeira fatura</p>
+            <p class="valor">{{ parcelas[0]["data"] | data_br if parcelas else "—" }}</p>
+        </div>
+    </div>
+
+    <div class="painel tabela-rolagem">
+        <h2>Parcelas por fatura</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parcela</th>
+                    <th>Vence em (fatura)</th>
+                    <th class="num">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for parcela in parcelas %}
+                <tr>
+                    <td>{{ parcela["parcela_numero"] }}/{{ parcela["parcela_total"] }}</td>
+                    <td class="valor">{{ parcela["data"] | data_br }}</td>
+                    <td class="num valor despesa">{{ parcela["valor_centavos"] | moeda }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if compra["observacao"] %}
+    <p class="subtitulo">Observação: {{ compra["observacao"] }}</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('lancamentos') }}">← Voltar para os lançamentos</a></p>
+{% endblock %}

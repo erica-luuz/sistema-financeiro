@@ -57,6 +57,10 @@
             {% endfor %}
         </select>
     </div>
+    <p class="ajuda">
+        Comprou no cartão de crédito? <a href="{{ url_for('nova_compra') }}">Lance como compra no cartão</a>
+        — o sistema calcula a fatura e as parcelas.
+    </p>
 
     <div class="campo">
         <label for="observacao">Observação (opcional)</label>

@@ -24,7 +24,7 @@
                 <a href="{{ url_for('dashboard') }}"
                    class="{{ 'ativo' if pagina == 'dashboard' }}">Dashboard</a>
                 <a href="{{ url_for('lancamentos') }}"
-                   class="{{ 'ativo' if pagina in ['lancamentos', 'editar_lancamento'] }}">Lançamentos</a>
+                   class="{{ 'ativo' if pagina in ['lancamentos', 'editar_lancamento', 'nova_compra', 'ver_compra', 'editar_compra'] }}">Lançamentos</a>
                 <a href="{{ url_for('cartoes') }}"
                    class="{{ 'ativo' if pagina in ['cartoes', 'novo_cartao', 'editar_cartao'] }}">Cartões</a>
                 <a href="{{ url_for('categorias') }}"

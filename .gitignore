@@ -6,9 +6,10 @@ venv/
 database.db
 backups/
 
-# Cache do Python
+# Cache do Python e dos testes
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # Configurações locais
 .env

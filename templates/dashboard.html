@@ -74,7 +74,8 @@
                         {% for lancamento in ultimos %}
                         <tr>
                             <td>
-                                {{ lancamento["descricao"] }}<br>
+                                {{ lancamento["descricao"] }}
+                                {% if lancamento["parcela_total"] and lancamento["parcela_total"] > 1 %}({{ lancamento["parcela_numero"] }}/{{ lancamento["parcela_total"] }}){% endif %}<br>
                                 <span class="pct">{{ lancamento["data"] | data_br }} · {{ lancamento["categoria"] }} · {{ lancamento["forma_pagamento"] | forma }}</span>
                             </td>
                             <td class="num valor {{ lancamento['tipo'] }}">
