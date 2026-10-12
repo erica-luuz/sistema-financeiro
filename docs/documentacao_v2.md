@@ -411,6 +411,10 @@ CREATE TABLE orcamentos (
 
 ## Histórico de revisões
 
+### v2.4 — 12/10/2026
+- Orçamento implementado (migração 005): página por mês com navegação, salvar todas as categorias de uma vez (UPSERT `ON CONFLICT ... DO UPDATE`), "Copiar do mês anterior" (`INSERT OR IGNORE ... SELECT`), quadro no dashboard.
+- Categorias mais "apertadas" aparecem primeiro; o resumo mostra também o gasto em categorias sem orçamento.
+
 ### v2.3 — 12/10/2026
 - Recorrências implementadas (migração 004). A verificação "já foi lançada?" é feita com `NOT EXISTS`; o índice único é a segunda garantia.
 - Recorrência no crédito gera uma compra à vista no cartão; editar essa compra mantém a ligação com a recorrência.

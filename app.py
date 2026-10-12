@@ -5,7 +5,7 @@ from datetime import date
 
 from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
-from faturas import data_fechamento, gerar_parcelas, proximo_vencimento, situacao_fatura
+from faturas import data_fechamento, gerar_parcelas, proximo_vencimento, situacao_fatura, somar_meses
 
 app = Flask(__name__)   # cria a aplicação (o "servidor")
 
@@ -242,12 +242,18 @@ def dashboard():
     # Contas recorrentes do mês atual que ainda não foram lançadas
     pendentes = recorrencias_pendentes(conn, mes_atual())
 
+    # Orçamento do mês em que o período começa (só as categorias orçadas)
+    mes_orcamento = inicio[:7]
+    orcamento_itens = [i for i in buscar_orcamento(conn, mes_orcamento) if i["previsto"]]
+
     conn.close()
 
     return render_template(
         "dashboard.html",
         recorrencias_pendentes=pendentes,
         mes_pendentes=mes_atual(),
+        mes_orcamento=mes_orcamento,
+        orcamento_itens=orcamento_itens,
         inicio=inicio,
         fim=fim,
         receitas=totais["receitas"],
@@ -1267,6 +1273,159 @@ def gerar_recorrencias_mes():
     ano, numero_mes = int(mes[:4]), int(mes[5:])
     ultimo_dia = calendar.monthrange(ano, numero_mes)[1]
     return redirect(url_for("lancamentos", inicio=f"{mes}-01", fim=f"{mes}-{ultimo_dia}"))
+
+
+# ---------- Orçamento mensal ----------
+
+def mes_vizinho(mes, quantidade):
+    """'2026-10', -1 → '2026-09'."""
+    ano, numero = somar_meses(int(mes[:4]), int(mes[5:]), quantidade)
+    return f"{ano}-{numero:02d}"
+
+
+def limites_do_mes(mes):
+    """'2026-02' → ('2026-02-01', '2026-02-28')."""
+    ultimo_dia = calendar.monthrange(int(mes[:4]), int(mes[5:]))[1]
+    return f"{mes}-01", f"{mes}-{ultimo_dia}"
+
+
+def faixa_orcamento(percentual):
+    """Cor da barra: até 80% normal, até 100% atenção, acima disso estourou."""
+    if percentual > 100:
+        return "estourou"
+    if percentual >= 80:
+        return "atencao"
+    return "normal"
+
+
+def buscar_orcamento(conn, mes):
+    """Para cada categoria de despesa: previsto (orçamento) e realizado (despesas do mês)."""
+    inicio, fim = limites_do_mes(mes)
+    linhas = conn.execute(
+        """
+        SELECT c.id, c.nome,
+               o.valor_centavos AS previsto,
+               COALESCE((
+                   SELECT SUM(l.valor_centavos) FROM lancamentos l
+                   WHERE l.categoria_id = c.id AND l.tipo = 'despesa'
+                     AND l.data BETWEEN ? AND ?
+               ), 0) AS realizado
+        FROM categorias c
+        LEFT JOIN orcamentos o ON o.categoria_id = c.id AND o.mes = ?
+        WHERE c.tipo = 'despesa'
+        """,
+        (inicio, fim, mes),
+    ).fetchall()
+
+    itens = []
+    for linha in linhas:
+        item = dict(linha)   # sqlite3.Row → dicionário comum, para poder acrescentar campos
+        if item["previsto"]:
+            item["percentual"] = item["realizado"] * 100 / item["previsto"]
+            item["faixa"] = faixa_orcamento(item["percentual"])
+        itens.append(item)
+    # Orçadas primeiro (as mais "apertadas" no topo); depois as sem orçamento, por nome
+    itens.sort(key=lambda i: (
+        i["previsto"] is None,
+        -(i.get("percentual") or 0),
+        sem_acento(i["nome"]),
+    ))
+    return itens
+
+
+def resumo_orcamento(itens):
+    orcados = [i for i in itens if i["previsto"]]
+    return {
+        "previsto": sum(i["previsto"] for i in orcados),
+        "realizado": sum(i["realizado"] for i in orcados),
+        "fora": sum(i["realizado"] for i in itens if not i["previsto"]),  # gasto sem orçamento
+        "estouradas": sum(1 for i in orcados if i["faixa"] == "estourou"),
+        "tem_orcamento": bool(orcados),
+    }
+
+
+@app.route("/orcamento", methods=["GET", "POST"])
+def orcamento():
+    mes = request.values.get("mes", "")   # values = args (GET) ou form (POST)
+    if not mes_valido(mes):
+        mes = mes_atual()
+    conn = get_db_connection()
+    erro = None
+
+    if request.method == "POST":
+        # Um campo por categoria: valor_4, valor_7... Vazio ou zero = sem orçamento
+        novos = {}
+        for categoria in categorias_de_despesa():
+            texto = request.form.get(f"valor_{categoria['id']}", "").strip()
+            if not texto:
+                novos[categoria["id"]] = 0
+                continue
+            try:
+                novos[categoria["id"]] = para_centavos(texto)
+            except (ValueError, OverflowError):
+                erro = f"Valor inválido em {categoria['nome']}."
+                break
+            if novos[categoria["id"]] < 0:
+                erro = f"O orçamento de {categoria['nome']} não pode ser negativo."
+                break
+
+        if not erro:
+            with conn:
+                for categoria_id, valor in novos.items():
+                    if valor == 0:
+                        conn.execute(
+                            "DELETE FROM orcamentos WHERE categoria_id = ? AND mes = ?",
+                            (categoria_id, mes),
+                        )
+                    else:
+                        # UPSERT: insere; se já existe (UNIQUE categoria+mês), atualiza o valor
+                        conn.execute(
+                            """
+                            INSERT INTO orcamentos (categoria_id, mes, valor_centavos)
+                            VALUES (?, ?, ?)
+                            ON CONFLICT (categoria_id, mes)
+                            DO UPDATE SET valor_centavos = excluded.valor_centavos
+                            """,
+                            (categoria_id, mes, valor),
+                        )
+            conn.close()
+            return redirect(url_for("orcamento", mes=mes))
+
+    itens = buscar_orcamento(conn, mes)
+    tem_anterior = conn.execute(
+        "SELECT COUNT(*) FROM orcamentos WHERE mes = ?", (mes_vizinho(mes, -1),)
+    ).fetchone()[0]
+    conn.close()
+    return render_template(
+        "orcamento.html",
+        mes=mes,
+        mes_anterior=mes_vizinho(mes, -1),
+        mes_seguinte=mes_vizinho(mes, 1),
+        itens=itens,
+        resumo=resumo_orcamento(itens),
+        tem_anterior=tem_anterior,
+        erro=erro,
+    )
+
+
+@app.route("/orcamento/copiar", methods=["POST"])
+def copiar_orcamento():
+    mes = request.form.get("mes", "")
+    if not mes_valido(mes):
+        mes = mes_atual()
+    conn = get_db_connection()
+    # INSERT ... SELECT: copia as linhas do mês anterior trocando só o mês.
+    # OR IGNORE: categorias que já têm valor neste mês ficam como estão.
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO orcamentos (categoria_id, mes, valor_centavos)
+        SELECT categoria_id, ?, valor_centavos FROM orcamentos WHERE mes = ?
+        """,
+        (mes, mes_vizinho(mes, -1)),
+    )
+    conn.commit()
+    conn.close()
+    return redirect(url_for("orcamento", mes=mes))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block titulo %}Orçamento{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <div>
+            <h1>Orçamento de {{ (mes ~ "-01") | mes_ano }}</h1>
+            <p class="subtitulo">Quanto vocês planejam gastar em cada categoria × quanto já foi gasto.</p>
+        </div>
+        <div class="botoes-filtro">
+            <a class="botao" href="{{ url_for('orcamento', mes=mes_anterior) }}" aria-label="Mês anterior">‹</a>
+            <form method="get" class="form-inline">
+                <input type="month" name="mes" value="{{ mes }}" onchange="this.form.submit()" aria-label="Escolher mês">
+            </form>
+            <a class="botao" href="{{ url_for('orcamento', mes=mes_seguinte) }}" aria-label="Mês seguinte">›</a>
+        </div>
+    </div>
+
+    {% if erro %}
+    <p class="alerta">{{ erro }}</p>
+    {% endif %}
+
+    {% if not resumo["tem_orcamento"] and tem_anterior %}
+    <div class="aviso aviso-acao">
+        <div>Este mês ainda não tem orçamento. Quer usar os mesmos valores de {{ (mes_anterior ~ "-01") | mes_ano }}?</div>
+        <form method="post" action="{{ url_for('copiar_orcamento') }}">
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <button type="submit" class="botao botao-primario">Copiar do mês anterior</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if resumo["tem_orcamento"] %}
+    <div class="cartoes">
+        <div class="cartao">
+            <p class="rotulo">Previsto</p>
+            <p class="valor">{{ resumo["previsto"] | moeda }}</p>
+        </div>
+        <div class="cartao">
+            <p class="rotulo">Gasto nas categorias orçadas</p>
+            <p class="valor despesa">{{ resumo["realizado"] | moeda }}</p>
+            {% set pct_total = resumo["realizado"] * 100 / resumo["previsto"] %}
+            <div class="barra barra-{{ 'estourou' if pct_total > 100 else ('atencao' if pct_total >= 80 else 'normal') }}">
+                <span style="width: {{ '%.1f' | format([pct_total, 100] | min) }}%;"></span>
+            </div>
+        </div>
+        <div class="cartao">
+            <p class="rotulo">{{ "Ainda pode gastar" if resumo["previsto"] >= resumo["realizado"] else "Passou do previsto" }}</p>
+            <p class="valor {{ 'receita' if resumo['previsto'] >= resumo['realizado'] else 'despesa' }}">
+                {{ (resumo["previsto"] - resumo["realizado"]) | abs | moeda }}
+            </p>
+            {% if resumo["fora"] %}
+            <p class="pct">+ {{ resumo["fora"] | moeda }} em categorias sem orçamento</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" class="painel">
+        <input type="hidden" name="mes" value="{{ mes }}">
+        <div class="tabela-rolagem">
+            <table class="tabela-orcamento">
+                <thead>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Previsto (R$)</th>
+                        <th class="num">Gasto</th>
+                        <th>Uso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td><label for="valor_{{ item['id'] }}">{{ item["nome"] }}</label></td>
+                        <td>
+                            <input type="number" id="valor_{{ item['id'] }}" name="valor_{{ item['id'] }}"
+                                   step="0.01" min="0" placeholder="sem orçamento"
+                                   value="{{ '%.2f' | format(item['previsto'] / 100) if item['previsto'] else '' }}">
+                        </td>
+                        <td class="num valor">{{ item["realizado"] | moeda }}</td>
+                        <td class="coluna-uso">
+                            {% if item["previsto"] %}
+                            <div class="barra barra-{{ item['faixa'] }}">
+                                <span style="width: {{ '%.1f' | format([item['percentual'], 100] | min) }}%;"></span>
+                            </div>
+                            <span class="pct">
+                                {{ ("%.0f" | format(item["percentual"])) }}%
+                                {% if item["faixa"] == "estourou" %}· passou {{ (item["realizado"] - item["previsto"]) | moeda }}
+                                {% elif item["faixa"] == "atencao" %}· atenção
+                                {% else %}· resta {{ (item["previsto"] - item["realizado"]) | moeda }}{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="pct">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="botoes-form">
+            <button type="submit" class="botao botao-primario">Salvar orçamento</button>
+            <span class="ajuda" style="margin: 0;">Deixe em branco as categorias que não quer orçar.</span>
+        </div>
+    </form>
+{% endblock %}

@@ -66,6 +66,35 @@
     </p>
     {% endif %}
 
+    <section class="painel">
+        <div class="fatura-topo">
+            <h2>Orçamento de {{ (mes_orcamento ~ "-01") | mes_ano }}</h2>
+            <a href="{{ url_for('orcamento', mes=mes_orcamento) }}">{{ "Ajustar" if orcamento_itens else "Definir orçamento" }}</a>
+        </div>
+        {% if orcamento_itens %}
+        <ul class="barras">
+            {% for item in orcamento_itens %}
+            <li>
+                <div class="barra-topo">
+                    <span>{{ item["nome"] }}</span>
+                    <span class="valor">{{ item["realizado"] | moeda }} <span class="pct">de {{ item["previsto"] | moeda }}</span></span>
+                </div>
+                <div class="barra barra-{{ item['faixa'] }}">
+                    <span style="width: {{ '%.1f' | format([item['percentual'], 100] | min) }}%;"></span>
+                </div>
+                {% if item["faixa"] == "estourou" %}
+                <span class="pct despesa">Passou {{ (item["realizado"] - item["previsto"]) | moeda }} do previsto</span>
+                {% elif item["faixa"] == "atencao" %}
+                <span class="pct">Atenção: {{ "%.0f" | format(item["percentual"]) }}% usado</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="pct">Defina quanto pretendem gastar por categoria e acompanhe aqui o previsto × realizado.</p>
+        {% endif %}
+    </section>
+
     {% if proximas_faturas %}
     <section class="painel">
         <h2>Próximas faturas</h2>

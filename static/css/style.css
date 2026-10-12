@@ -423,6 +423,16 @@ tbody tr:hover { background: var(--cal); }
 }
 .pct { color: var(--cinza); font-size: 0.8rem; }
 
+/* Orçamento: a cor da barra mostra a situação */
+.barra-normal span { background: var(--azulejo); }
+.barra-atencao span { background: #e0a32e; }
+.barra-estourou span { background: var(--despesa); }
+.cartao .barra { margin-top: 0.5rem; }
+
+.tabela-orcamento input { max-width: 160px; }
+.coluna-uso { min-width: 180px; }
+.coluna-uso .barra { margin-bottom: 0.25rem; }
+
 /* ---------- Celular ---------- */
 
 @media (max-width: 760px) {
