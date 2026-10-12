@@ -31,6 +31,32 @@
     </div>
     {% endif %}
 
+    {% if resumo["sem_orcamento_com_fixas"] %}
+    <div class="aviso aviso-acao">
+        <div>
+            {{ resumo["sem_orcamento_com_fixas"] }} categoria(s) sem orçamento têm contas fixas neste mês.
+            Quer usar o valor das contas fixas como ponto de partida? Depois é só ajustar.
+        </div>
+        <form method="post" action="{{ url_for('preencher_orcamento_com_fixas') }}">
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <button type="submit" class="botao">Preencher com as contas fixas</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% for item in resumo["fixas_acima"] %}
+    <p class="alerta">
+        O orçamento de {{ item["nome"] }} ({{ item["previsto"] | moeda }}) é menor que as contas fixas dela
+        ({{ item["fixas"] | moeda }}) — ele já começa o mês estourado.
+    </p>
+    {% endfor %}
+    {% for item in resumo["vao_estourar"] if not item["fixas_acima"] %}
+    <p class="alerta">
+        {{ item["nome"] }}: com as contas fixas que ainda faltam lançar, deve fechar em
+        {{ item["projecao"] | moeda }} — acima do previsto de {{ item["previsto"] | moeda }}.
+    </p>
+    {% endfor %}
+
     {% if resumo["tem_orcamento"] %}
     <div class="cartoes">
         <div class="cartao">
@@ -44,14 +70,17 @@
             <div class="barra barra-{{ 'estourou' if pct_total > 100 else ('atencao' if pct_total >= 80 else 'normal') }}">
                 <span style="width: {{ '%.1f' | format([pct_total, 100] | min) }}%;"></span>
             </div>
+            {% if resumo["projecao"] > resumo["realizado"] %}
+            <p class="pct">Projeção do mês: {{ resumo["projecao"] | moeda }} (com as contas fixas que faltam)</p>
+            {% endif %}
         </div>
         <div class="cartao">
-            <p class="rotulo">{{ "Ainda pode gastar" if resumo["previsto"] >= resumo["realizado"] else "Passou do previsto" }}</p>
-            <p class="valor {{ 'receita' if resumo['previsto'] >= resumo['realizado'] else 'despesa' }}">
-                {{ (resumo["previsto"] - resumo["realizado"]) | abs | moeda }}
-            </p>
+            {% set sobra = resumo["previsto"] - resumo["projecao"] %}
+            <p class="rotulo">{{ "Ainda pode gastar" if sobra >= 0 else "Vai passar do previsto" }}</p>
+            <p class="valor {{ 'receita' if sobra >= 0 else 'despesa' }}">{{ sobra | abs | moeda }}</p>
+            <p class="pct">já descontando as contas fixas que faltam</p>
             {% if resumo["fora"] %}
-            <p class="pct">+ {{ resumo["fora"] | moeda }} em categorias sem orçamento</p>
+            <p class="pct">+ {{ resumo["fora"] | moeda }} gastos em categorias sem orçamento</p>
             {% endif %}
         </div>
     </div>
@@ -65,6 +94,7 @@
                     <tr>
                         <th>Categoria</th>
                         <th>Previsto (R$)</th>
+                        <th class="num">Contas fixas</th>
                         <th class="num">Gasto</th>
                         <th>Uso</th>
                     </tr>
@@ -78,17 +108,32 @@
                                    step="0.01" min="0" placeholder="sem orçamento"
                                    value="{{ '%.2f' | format(item['previsto'] / 100) if item['previsto'] else '' }}">
                         </td>
-                        <td class="num valor">{{ item["realizado"] | moeda }}</td>
+                        <td class="num">
+                            {% if item["fixas"] %}
+                            <span class="valor">{{ item["fixas"] | moeda }}</span>
+                            {% if item["pendentes"] %}<br><span class="pct">{{ item["pendentes"] | moeda }} a lançar</span>{% endif %}
+                            {% else %}<span class="pct">—</span>{% endif %}
+                        </td>
+                        <td class="num">
+                            <span class="valor">{{ item["realizado"] | moeda }}</span>
+                            {% if item["do_cartao"] %}<br><span class="pct">inclui {{ item["do_cartao"] | moeda }} do cartão</span>{% endif %}
+                        </td>
                         <td class="coluna-uso">
                             {% if item["previsto"] %}
-                            <div class="barra barra-{{ item['faixa'] }}">
+                            {# Barra com duas partes: o que já foi gasto (cheio) + as contas fixas que faltam (listrado) #}
+                            <div class="barra barra-dupla barra-{{ item['faixa_projecao'] }}">
                                 <span style="width: {{ '%.1f' | format([item['percentual'], 100] | min) }}%;"></span>
+                                {% if item["pendentes"] %}
+                                <span class="parte-pendente"
+                                      style="width: {{ '%.1f' | format([item['percentual_pendente'], [100 - item['percentual'], 0] | max] | min) }}%;"></span>
+                                {% endif %}
                             </div>
                             <span class="pct">
-                                {{ ("%.0f" | format(item["percentual"])) }}%
-                                {% if item["faixa"] == "estourou" %}· passou {{ (item["realizado"] - item["previsto"]) | moeda }}
-                                {% elif item["faixa"] == "atencao" %}· atenção
-                                {% else %}· resta {{ (item["previsto"] - item["realizado"]) | moeda }}{% endif %}
+                                {{ ("%.0f" | format(item["percentual"])) }}% gasto
+                                {% if item["pendentes"] %}· projeção {{ ("%.0f" | format(item["projecao"] * 100 / item["previsto"])) }}%{% endif %}
+                                {% if item["faixa_projecao"] == "estourou" %}· passa {{ (item["projecao"] - item["previsto"]) | moeda }}
+                                {% elif item["faixa_projecao"] == "atencao" %}· atenção
+                                {% else %}· resta {{ (item["previsto"] - item["projecao"]) | moeda }}{% endif %}
                             </span>
                             {% else %}
                             <span class="pct">—</span>

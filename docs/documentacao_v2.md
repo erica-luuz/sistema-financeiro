@@ -411,6 +411,14 @@ CREATE TABLE orcamentos (
 
 ## Histórico de revisões
 
+### v2.7 — 12/10/2026
+- Orçamento integrado às contas recorrentes e ao cartão:
+  - coluna **Contas fixas** (recorrentes de despesa cujo dinheiro sai no mês — no crédito, conta o mês da fatura) e quanto delas ainda falta lançar;
+  - **Gasto** mostra quanto veio de parcelas do cartão;
+  - **Projeção** = gasto + contas fixas ainda não lançadas (as já lançadas estão no gasto; não conta duas vezes);
+  - alertas: orçamento menor que as contas fixas; categoria que vai estourar pela projeção;
+  - botão **Preencher com as contas fixas** (só categorias sem orçamento).
+
 ### v2.6 — 12/10/2026 — Versão 2 concluída
 - Exportar CSV implementado: botão "Exportar para Excel" na lista, respeitando os filtros; separador `;`, vírgula decimal, datas DD/MM/AAAA, UTF-8 com BOM; despesas saem com valor negativo para a coluna poder ser somada no Excel.
 

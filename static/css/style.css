@@ -434,6 +434,15 @@ tbody tr:hover { background: var(--cal); }
 .barra-estourou span { background: var(--despesa); }
 .cartao .barra { margin-top: 0.5rem; }
 
+/* Barra dupla: gasto (cheio) + contas fixas que faltam (listrado, mesma cor mais clara) */
+.barra-dupla { display: flex; }
+.barra-dupla span { border-radius: 0; }
+.barra-dupla span:first-child { border-radius: 999px 0 0 999px; }
+.barra-dupla .parte-pendente {
+    opacity: 0.45;
+    background-image: repeating-linear-gradient(45deg, transparent 0 3px, rgba(255, 255, 255, 0.6) 3px 6px);
+}
+
 .tabela-orcamento input { max-width: 160px; }
 .coluna-uso { min-width: 180px; }
 .coluna-uso .barra { margin-bottom: 0.25rem; }
