@@ -3,9 +3,75 @@
 {% block titulo %}Dashboard{% endblock %}
 
 {% block conteudo %}
-
     <h1>Finanças da Casa</h1>
 
-    <p>Em breve: receitas, despesas e saldo.</p>
+    <!-- Filtro de período: usa GET, porque só consulta (não altera dados) -->
+    <form method="get">
+        <label for="inicio">De</label>
+        <input type="date" id="inicio" name="inicio" value="{{ inicio }}">
+        <label for="fim">até</label>
+        <input type="date" id="fim" name="fim" value="{{ fim }}">
+        <button type="submit">Filtrar</button>
+        <a href="{{ url_for('dashboard') }}">Mês atual</a>
+    </form>
 
+    <p>Período: {{ inicio | data_br }} a {{ fim | data_br }} · {{ qtd }} lançamento(s)</p>
+
+    <table>
+        <tr>
+            <th>Receitas</th>
+            <th>Despesas</th>
+            <th>Saldo</th>
+        </tr>
+        <tr>
+            <td style="color: green;">{{ receitas | moeda }}</td>
+            <td style="color: red;">{{ despesas | moeda }}</td>
+            <td style="color: {{ 'green' if saldo >= 0 else 'red' }};"><strong>{{ saldo | moeda }}</strong></td>
+        </tr>
+    </table>
+
+    <h2>Despesas por categoria</h2>
+    {% if despesas_por_categoria %}
+    <table>
+        <tr>
+            <th>Categoria</th>
+            <th>Total</th>
+            <th>% das despesas</th>
+        </tr>
+        {% for item in despesas_por_categoria %}
+        <tr>
+            <td>{{ item["nome"] }}</td>
+            <td>{{ item["total"] | moeda }}</td>
+            <td>{{ ("%.1f" | format(item["total"] * 100 / despesas)) | replace(".", ",") }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>Nenhuma despesa no período.</p>
+    {% endif %}
+
+    <h2>Últimos lançamentos</h2>
+    {% if ultimos %}
+    <table>
+        <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Valor</th>
+        </tr>
+        {% for lancamento in ultimos %}
+        <tr>
+            <td>{{ lancamento["data"] | data_br }}</td>
+            <td>{{ lancamento["descricao"] }}</td>
+            <td>{{ lancamento["categoria"] }}</td>
+            <td style="color: {{ 'green' if lancamento['tipo'] == 'receita' else 'red' }};">
+                {{ lancamento["valor_centavos"] | moeda }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p><a href="{{ url_for('lancamentos') }}">Ver todos os lançamentos</a></p>
+    {% else %}
+    <p>Nenhum lançamento no período. <a href="{{ url_for('novo_lancamento') }}">Cadastrar o primeiro</a></p>
+    {% endif %}
 {% endblock %}

@@ -1,4 +1,6 @@
+import calendar
 import sqlite3
+from datetime import date
 
 from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
@@ -9,9 +11,10 @@ app = Flask(__name__)   # cria a aplicação (o "servidor")
 @app.template_filter("moeda")
 def moeda(centavos):
     """Converte centavos em texto no formato brasileiro: 25050 → 'R$ 250,50'."""
-    texto = f"{centavos / 100:,.2f}"                    # 25050 → '250.50' / 123456 → '1,234.56'
+    sinal = "-" if centavos < 0 else ""                  # saldo negativo: -R$ 310,50
+    texto = f"{abs(centavos) / 100:,.2f}"               # 25050 → '250.50' / 123456 → '1,234.56'
     texto = texto.replace(",", "X").replace(".", ",").replace("X", ".")  # troca , e .
-    return f"R$ {texto}"
+    return f"{sinal}R$ {texto}"
 
 
 @app.template_filter("data_br")
@@ -55,9 +58,79 @@ def tipo_confere_com_categoria(conn, categoria_id, tipo):
     return categoria is not None and categoria["tipo"] == tipo
 
 
-@app.route("/")   # quando acessarem o endereço "/"...
-def dashboard():  # ...o Flask executa esta função...
-    return render_template("dashboard.html")  # ..e devolve a página montada pelo template
+def periodo_mes_atual():
+    """Devolve o primeiro e o último dia do mês atual, no formato AAAA-MM-DD."""
+    hoje = date.today()
+    ultimo_dia = calendar.monthrange(hoje.year, hoje.month)[1]  # 28, 29, 30 ou 31
+    inicio = hoje.replace(day=1)
+    fim = hoje.replace(day=ultimo_dia)
+    return inicio.isoformat(), fim.isoformat()
+
+
+@app.route("/")
+def dashboard():
+    # Período: vem do formulário (?inicio=...&fim=...) ou, por padrão, o mês atual
+    inicio_padrao, fim_padrao = periodo_mes_atual()
+    inicio = request.args.get("inicio") or inicio_padrao
+    fim = request.args.get("fim") or fim_padrao
+
+    if inicio > fim:  # datas ISO podem ser comparadas como texto
+        inicio, fim = fim, inicio
+
+    conn = get_db_connection()
+
+    # Totais do período: uma consulta só, separando receitas e despesas com CASE
+    totais = conn.execute(
+        """
+        SELECT
+            COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor_centavos END), 0) AS receitas,
+            COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor_centavos END), 0) AS despesas,
+            COUNT(*) AS qtd
+        FROM lancamentos
+        WHERE data BETWEEN ? AND ?
+        """,
+        (inicio, fim),
+    ).fetchone()
+
+    # Despesas agrupadas por categoria, da maior para a menor
+    despesas_por_categoria = conn.execute(
+        """
+        SELECT c.nome, SUM(l.valor_centavos) AS total
+        FROM lancamentos l
+        JOIN categorias c ON c.id = l.categoria_id
+        WHERE l.tipo = 'despesa' AND l.data BETWEEN ? AND ?
+        GROUP BY c.id
+        ORDER BY total DESC
+        """,
+        (inicio, fim),
+    ).fetchall()
+
+    # Os 5 lançamentos mais recentes do período
+    ultimos = conn.execute(
+        """
+        SELECT l.descricao, l.valor_centavos, l.tipo, l.data, c.nome AS categoria
+        FROM lancamentos l
+        JOIN categorias c ON c.id = l.categoria_id
+        WHERE l.data BETWEEN ? AND ?
+        ORDER BY l.data DESC, l.id DESC
+        LIMIT 5
+        """,
+        (inicio, fim),
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "dashboard.html",
+        inicio=inicio,
+        fim=fim,
+        receitas=totais["receitas"],
+        despesas=totais["despesas"],
+        saldo=totais["receitas"] - totais["despesas"],  # SALDO = RECEITAS − DESPESAS
+        qtd=totais["qtd"],
+        despesas_por_categoria=despesas_por_categoria,
+        ultimos=ultimos,
+    )
 
 
 @app.route("/categorias")
