@@ -198,17 +198,61 @@ def excluir_categoria(categoria_id):
 
 @app.route("/lancamentos")
 def lancamentos():
+    # Filtros vindos do formulário (GET). Campo vazio = sem filtro
+    filtros = {
+        "inicio": request.args.get("inicio", ""),
+        "fim": request.args.get("fim", ""),
+        "tipo": request.args.get("tipo", ""),
+        "categoria_id": request.args.get("categoria_id", ""),
+    }
+
+    # Monta o WHERE aos poucos: só entram as condições que foram preenchidas.
+    # Os VALORES continuam indo pelos "?" (nunca colados no texto do SQL)
+    condicoes = []
+    parametros = []
+    if filtros["inicio"]:
+        condicoes.append("l.data >= ?")
+        parametros.append(filtros["inicio"])
+    if filtros["fim"]:
+        condicoes.append("l.data <= ?")
+        parametros.append(filtros["fim"])
+    if filtros["tipo"]:
+        condicoes.append("l.tipo = ?")
+        parametros.append(filtros["tipo"])
+    if filtros["categoria_id"]:
+        condicoes.append("l.categoria_id = ?")
+        parametros.append(filtros["categoria_id"])
+
+    where = ""
+    if condicoes:
+        where = "WHERE " + " AND ".join(condicoes)  # ["a", "b"] → "a AND b"
+
     conn = get_db_connection()
     lancamentos = conn.execute(
-        """
+        f"""
         SELECT l.id, l.descricao, l.valor_centavos, l.tipo, l.data, c.nome AS categoria
         FROM lancamentos l
         JOIN categorias c ON c.id = l.categoria_id
+        {where}
         ORDER BY l.data DESC, l.id DESC
-        """
+        """,
+        parametros,
     ).fetchall()
     conn.close()
-    return render_template("lancamentos.html", lancamentos=lancamentos)
+
+    # Totais do resultado filtrado (em centavos inteiros)
+    total_receitas = sum(l["valor_centavos"] for l in lancamentos if l["tipo"] == "receita")
+    total_despesas = sum(l["valor_centavos"] for l in lancamentos if l["tipo"] == "despesa")
+
+    return render_template(
+        "lancamentos.html",
+        lancamentos=lancamentos,
+        categorias=buscar_categorias(),
+        filtros=filtros,
+        filtrando=bool(condicoes),
+        total_receitas=total_receitas,
+        total_despesas=total_despesas,
+    )
 
 
 @app.route("/lancamentos/novo", methods=["GET", "POST"])
