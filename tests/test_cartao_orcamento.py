@@ -89,6 +89,47 @@ def test_pagina_de_faturas(logado, banco, cartao):
     assert "Fatura de novembro/2026" in html and "R$ 333,34" in html
 
 
+# ---------- fatura paga ----------
+
+@pytest.fixture
+def cinco_de_novembro(monkeypatch):
+    """Relógio parado em 05/11/2026: a fatura que vence em 10/11 (fecha dia 3) está FECHADA."""
+    from datetime import datetime
+    import relogio
+    monkeypatch.setattr(relogio, "agora", lambda: datetime(2026, 11, 5, 12, 0, tzinfo=relogio.FUSO))
+
+
+def test_marcar_fatura_paga_libera_o_limite(logado, banco, cartao, cinco_de_novembro):
+    comprar(logado, banco, cartao)                        # 333,34 + 333,33 + 333,33 (nov, dez, jan)
+    from modulos.cartoes import limite_usado
+    import relogio
+    assert limite_usado(banco, cartao, relogio.hoje()) == 100000
+
+    logado.post(f"/cartoes/{cartao}/faturas/2026-11-10/pagamento")
+    assert limite_usado(banco, cartao, relogio.hoje()) == 66666    # a de novembro saiu
+    pagina = logado.get(f"/cartoes/{cartao}/faturas").get_data(as_text=True)
+    assert "✓ Paga" in pagina
+
+    logado.post(f"/cartoes/{cartao}/faturas/2026-11-10/pagamento", data={"acao": "desmarcar"})
+    assert limite_usado(banco, cartao, relogio.hoje()) == 100000
+
+
+def test_marcar_paga_duas_vezes_nao_da_erro(logado, banco, cartao, cinco_de_novembro):
+    comprar(logado, banco, cartao)
+    for _ in range(2):
+        assert logado.post(f"/cartoes/{cartao}/faturas/2026-11-10/pagamento").status_code == 302
+    assert banco.execute("SELECT COUNT(*) FROM faturas_pagas").fetchone()[0] == 1
+
+
+def test_pagamento_de_fatura_protegido(logado, banco, cartao):
+    assert logado.get(f"/cartoes/{cartao}/faturas/2026-11-10/pagamento").status_code == 405   # só POST
+    assert logado.post(f"/cartoes/{cartao}/faturas/data-invalida/pagamento").status_code == 404
+    assert logado.post("/cartoes/999/faturas/2026-11-10/pagamento").status_code == 404
+    resposta = logado.post(f"/cartoes/{cartao}/faturas/2026-11-10/pagamento",
+                           data={"voltar_para": "https://site-falso.com"})
+    assert resposta.headers["Location"] == f"/cartoes/{cartao}/faturas"   # nunca para outro site
+
+
 # ---------- recorrências ----------
 
 def recorrencia(logado, banco, **campos):

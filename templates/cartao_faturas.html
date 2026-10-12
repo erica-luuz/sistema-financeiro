@@ -44,12 +44,14 @@
     {% endif %}
 
     {% for fatura in faturas %}
-    <section class="painel fatura fatura-{{ fatura['situacao'] }}">
+    <section class="painel fatura fatura-{{ 'paga' if fatura['paga_em'] else fatura['situacao'] }}">
         <div class="fatura-topo">
             <div>
                 <h2>Fatura de {{ fatura["vencimento"] | mes_ano }}</h2>
                 <p class="subtitulo">
-                    {% if fatura["situacao"] == "futura" %}
+                    {% if fatura["paga_em"] %}
+                    <span class="selo selo-paga">✓ Paga</span> em {{ fatura["paga_em"] | data_local }} · vencimento {{ fatura["vencimento"] | data_br }}
+                    {% elif fatura["situacao"] == "futura" %}
                     <span class="selo selo-futura">Futura</span> parcelas já comprometidas · vence em {{ fatura["vencimento"] | data_br }}
                     {% elif fatura["situacao"] == "aberta" %}
                     <span class="selo selo-aberta">Aberta</span> fecha em {{ fatura["fechamento"] | data_br }} · vence em {{ fatura["vencimento"] | data_br }}
@@ -60,7 +62,22 @@
                     {% endif %}
                 </p>
             </div>
-            <p class="valor despesa fatura-total">{{ fatura["total"] | moeda }}</p>
+            <div class="fatura-direita">
+                <p class="valor despesa fatura-total">{{ fatura["total"] | moeda }}</p>
+                {# Marcar/desmarcar como paga (só faz sentido depois que a fatura fechou) #}
+                {% if fatura["paga_em"] or fatura["situacao"] in ("fechada", "vencida") %}
+                <form method="post" class="form-inline"
+                      action="{{ url_for('cartoes.pagamento_fatura', cartao_id=cartao['id'], vencimento=fatura['vencimento']) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% if fatura["paga_em"] %}
+                    <input type="hidden" name="acao" value="desmarcar">
+                    <button type="submit" class="acao">Desmarcar pagamento</button>
+                    {% else %}
+                    <button type="submit" class="botao">✓ Marcar como paga</button>
+                    {% endif %}
+                </form>
+                {% endif %}
+            </div>
         </div>
 
         <div class="tabela-rolagem">

@@ -6,7 +6,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 import relogio
 from db import get_db_connection
-from util import para_centavos, sem_acento
+from util import data_br, para_centavos, sem_acento
 from faturas import data_fechamento, situacao_fatura
 
 bp = Blueprint("cartoes", __name__)
@@ -176,15 +176,37 @@ def total_fatura(conn, cartao_id, vencimento):
 
 
 def limite_usado(conn, cartao_id, hoje):
-    """Parcelas que ainda não venceram: é o quanto do limite está comprometido."""
+    """Parcelas que ainda não venceram, de faturas ainda não pagas: é o quanto do limite está
+    comprometido. Pagar a fatura antes do vencimento libera o limite na hora (como no banco)."""
     return conn.execute(
         """
         SELECT COALESCE(SUM(l.valor_centavos), 0)
         FROM lancamentos l
         JOIN compras_cartao cc ON cc.id = l.compra_id
         WHERE cc.cartao_id = ? AND l.data >= ?
+          AND NOT EXISTS (
+              SELECT 1 FROM faturas_pagas fp
+              WHERE fp.cartao_id = cc.cartao_id AND fp.vencimento = l.data
+          )
         """,
         (cartao_id, hoje.isoformat()),
+    ).fetchone()[0]
+
+
+def faturas_pagas_do_cartao(conn, cartao_id):
+    """{vencimento: data do pagamento} das faturas marcadas como pagas."""
+    return {
+        linha["vencimento"]: linha["pago_em"]
+        for linha in conn.execute(
+            "SELECT vencimento, pago_em FROM faturas_pagas WHERE cartao_id = ?", (cartao_id,)
+        )
+    }
+
+
+def fatura_esta_paga(conn, cartao_id, vencimento):
+    return conn.execute(
+        "SELECT EXISTS (SELECT 1 FROM faturas_pagas WHERE cartao_id = ? AND vencimento = ?)",
+        (cartao_id, vencimento.isoformat()),
     ).fetchone()[0]
 
 
@@ -221,6 +243,7 @@ def faturas(cartao_id):
         (cartao_id, inicio_mes),
     ).fetchone()[0]
     usado = limite_usado(conn, cartao_id, hoje)
+    pagas = faturas_pagas_do_cartao(conn, cartao_id)
     conn.close()
 
     # Agrupa as parcelas por fatura (todas as parcelas de uma fatura têm a mesma data de vencimento)
@@ -236,6 +259,7 @@ def faturas(cartao_id):
                 "situacao": situacao_fatura(
                     vencimento, cartao["dia_fechamento"], cartao["dia_vencimento"], hoje
                 ),
+                "paga_em": pagas.get(parcela["data"]),   # None = ainda não paga
                 "itens": [],
                 "total": 0,
             }
@@ -252,6 +276,40 @@ def faturas(cartao_id):
         mostrar_anteriores=mostrar_anteriores,
         qtd_anteriores=qtd_anteriores,
     )
+
+
+@bp.route("/cartoes/<int:cartao_id>/faturas/<vencimento>/pagamento", methods=["POST"])
+def pagamento_fatura(cartao_id, vencimento):
+    """Marca (ou desmarca) a fatura que vence nessa data como paga."""
+    try:
+        date.fromisoformat(vencimento)   # só aceita datas válidas (AAAA-MM-DD)
+    except ValueError:
+        abort(404)
+    conn = get_db_connection()
+    if conn.execute("SELECT 1 FROM cartoes WHERE id = ?", (cartao_id,)).fetchone() is None:
+        conn.close()
+        abort(404)
+
+    if request.form.get("acao") == "desmarcar":
+        conn.execute(
+            "DELETE FROM faturas_pagas WHERE cartao_id = ? AND vencimento = ?", (cartao_id, vencimento)
+        )
+        mensagem = "Fatura marcada como não paga."
+    else:
+        # OR IGNORE: clicar duas vezes não dá erro (o UNIQUE já impede pagar duas vezes)
+        conn.execute(
+            "INSERT OR IGNORE INTO faturas_pagas (cartao_id, vencimento) VALUES (?, ?)",
+            (cartao_id, vencimento),
+        )
+        mensagem = f"Fatura com vencimento em {data_br(vencimento)} marcada como paga."
+    conn.commit()
+    conn.close()
+    flash(mensagem, "sucesso")
+    # Volta para onde o botão estava. Só aceita opções conhecidas (nunca um endereço digitado),
+    # para ninguém usar este formulário para mandar a pessoa a outro site
+    if request.form.get("voltar_para") == "dashboard":
+        return redirect(url_for("dashboard.inicio"))
+    return redirect(url_for("cartoes.faturas", cartao_id=cartao_id))
 
 
 @bp.route("/cartoes/excluir/<int:cartao_id>", methods=["POST"])

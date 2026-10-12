@@ -11,7 +11,7 @@ from util import (
     periodo_mes_atual,
 )
 from faturas import proximo_vencimento, situacao_fatura
-from modulos.cartoes import buscar_cartoes, total_fatura
+from modulos.cartoes import buscar_cartoes, fatura_esta_paga, total_fatura
 from modulos.orcamento import buscar_orcamento
 from modulos.recorrencias import recorrencias_pendentes
 
@@ -95,6 +95,7 @@ def inicio():
             "situacao": situacao_fatura(
                 vencimento, cartao["dia_fechamento"], cartao["dia_vencimento"], hoje
             ),
+            "paga": fatura_esta_paga(conn, cartao["id"], vencimento),
         })
 
     # Contas recorrentes do mês atual que ainda não foram lançadas

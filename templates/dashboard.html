@@ -109,10 +109,24 @@
                             <span class="pct">{{ item["cartao"]["titular"] }}</span>
                         </td>
                         <td>
+                            {% if item["paga"] %}
+                            <span class="selo selo-paga">✓ Paga</span><br>
+                            {% else %}
                             <span class="selo selo-{{ item['situacao'] }}">{{ item["situacao"] | capitalize }}</span><br>
+                            {% endif %}
                             <span class="pct">vence em {{ item["vencimento"] | data_br }}</span>
                         </td>
-                        <td class="num valor despesa">{{ item["total"] | moeda }}</td>
+                        <td class="num">
+                            <span class="valor despesa">{{ item["total"] | moeda }}</span>
+                            {% if item["situacao"] == "fechada" and not item["paga"] and item["total"] %}
+                            <form method="post" class="form-inline"
+                                  action="{{ url_for('cartoes.pagamento_fatura', cartao_id=item['cartao']['id'], vencimento=item['vencimento']) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="voltar_para" value="dashboard">
+                                <br><button type="submit" class="acao">✓ Marcar como paga</button>
+                            </form>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

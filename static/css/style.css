@@ -378,6 +378,10 @@ tbody tr:hover { background: var(--cal); }
 .fatura-fechada { border-left: 4px solid #e0a32e; }
 .fatura-vencida { opacity: 0.75; }
 .fatura-futura { border-left: 4px dashed var(--linha); }
+.fatura-paga { border-left: 4px solid var(--receita); }
+.selo-paga { background: var(--receita-fundo); color: var(--receita); }
+.fatura-direita { text-align: right; }
+.fatura-direita form { display: block; margin-top: 0.5rem; }
 
 .filtros .filtro-busca { flex: 2 1 220px; }
 
