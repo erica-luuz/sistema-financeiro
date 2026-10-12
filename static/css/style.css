@@ -191,6 +191,15 @@ a { color: var(--azulejo); }
     font-weight: 500;
 }
 
+.aviso {
+    background: var(--azulejo-claro);
+    color: var(--noite);
+    border-left: 4px solid var(--azulejo);
+    border-radius: var(--raio);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
 .vazio {
     color: var(--cinza);
     text-align: center;
@@ -305,6 +314,25 @@ tbody tr:hover { background: var(--cal); }
 .selo-receita { background: var(--receita-fundo); color: var(--receita); }
 .selo-despesa { background: var(--despesa-fundo); color: var(--despesa); }
 .selo-inativo { background: var(--linha); color: var(--cinza); margin-left: 0.4rem; }
+.selo-aberta { background: var(--azulejo-claro); color: var(--azulejo); }
+.selo-fechada { background: #fff1d6; color: #8a5a00; }
+.selo-vencida { background: var(--linha); color: var(--cinza); }
+.selo-futura { background: var(--cal); color: var(--cinza); border: 1px dashed var(--linha); }
+
+/* Faturas do cartão */
+.fatura-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+.fatura-topo h2 { margin-bottom: 0.25rem; }
+.fatura-total { font-size: 1.4rem; margin: 0; }
+.fatura-aberta { border-left: 4px solid var(--azulejo); }
+.fatura-fechada { border-left: 4px solid #e0a32e; }
+.fatura-vencida { opacity: 0.75; }
+.fatura-futura { border-left: 4px dashed var(--linha); }
 
 .resumo-lista {
     color: var(--cinza);

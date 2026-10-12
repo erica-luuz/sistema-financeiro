@@ -5,7 +5,7 @@ from datetime import date
 
 from flask import Flask, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
 from db import get_db_connection
-from faturas import gerar_parcelas
+from faturas import data_fechamento, gerar_parcelas, proximo_vencimento, situacao_fatura
 
 app = Flask(__name__)   # cria a aplicação (o "servidor")
 
@@ -24,6 +24,17 @@ def data_br(data_iso):
     """Converte '2026-10-09' em '09/10/2026'."""
     ano, mes, dia = data_iso.split("-")
     return f"{dia}/{mes}/{ano}"
+
+
+MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+         "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+
+@app.template_filter("mes_ano")
+def mes_ano(data_iso):
+    """'2026-11-10' → 'novembro/2026'."""
+    ano, mes = data_iso.split("-")[:2]
+    return f"{MESES[int(mes) - 1]}/{ano}"
 
 
 def sem_acento(texto):
@@ -201,6 +212,33 @@ def dashboard():
         (inicio, fim),
     ).fetchall()
 
+    # Compras no cartão FEITAS no período: não entram no saldo (contam no mês da fatura),
+    # mas o aviso mostra que esse dinheiro já está comprometido
+    compras_cartao = conn.execute(
+        """
+        SELECT COUNT(*) AS qtd, COALESCE(SUM(valor_total_centavos), 0) AS total
+        FROM compras_cartao
+        WHERE data_compra BETWEEN ? AND ?
+        """,
+        (inicio, fim),
+    ).fetchone()
+
+    # Próxima fatura de cada cartão ativo, a partir de hoje
+    hoje = date.today()
+    proximas_faturas = []
+    for cartao in buscar_cartoes():
+        if not cartao["ativo"]:
+            continue
+        vencimento = proximo_vencimento(hoje, cartao["dia_vencimento"])
+        proximas_faturas.append({
+            "cartao": cartao,
+            "vencimento": vencimento.isoformat(),
+            "total": total_fatura(conn, cartao["id"], vencimento),
+            "situacao": situacao_fatura(
+                vencimento, cartao["dia_fechamento"], cartao["dia_vencimento"], hoje
+            ),
+        })
+
     conn.close()
 
     return render_template(
@@ -213,6 +251,8 @@ def dashboard():
         qtd=totais["qtd"],
         despesas_por_categoria=despesas_por_categoria,
         ultimos=ultimos,
+        compras_cartao=compras_cartao,
+        proximas_faturas=proximas_faturas,
     )
 
 
@@ -621,6 +661,98 @@ def editar_cartao(cartao_id):
     return render_template(
         "cartao_form.html", titulo="Editar cartão", cartao=cartao,
         dados=dados_do_cartao(cartao), titulares=buscar_titulares(),
+    )
+
+
+def total_fatura(conn, cartao_id, vencimento):
+    """Soma das parcelas de um cartão que vencem nessa data (ou seja, dessa fatura)."""
+    return conn.execute(
+        """
+        SELECT COALESCE(SUM(l.valor_centavos), 0)
+        FROM lancamentos l
+        JOIN compras_cartao cc ON cc.id = l.compra_id
+        WHERE cc.cartao_id = ? AND l.data = ?
+        """,
+        (cartao_id, vencimento.isoformat()),
+    ).fetchone()[0]
+
+
+def limite_usado(conn, cartao_id, hoje):
+    """Parcelas que ainda não venceram: é o quanto do limite está comprometido."""
+    return conn.execute(
+        """
+        SELECT COALESCE(SUM(l.valor_centavos), 0)
+        FROM lancamentos l
+        JOIN compras_cartao cc ON cc.id = l.compra_id
+        WHERE cc.cartao_id = ? AND l.data >= ?
+        """,
+        (cartao_id, hoje.isoformat()),
+    ).fetchone()[0]
+
+
+@app.route("/cartoes/<int:cartao_id>/faturas")
+def faturas_cartao(cartao_id):
+    conn = get_db_connection()
+    cartao = conn.execute("SELECT * FROM cartoes WHERE id = ?", (cartao_id,)).fetchone()
+    if cartao is None:
+        conn.close()
+        abort(404)
+
+    hoje = date.today()
+    inicio_mes = hoje.replace(day=1).isoformat()
+    mostrar_anteriores = request.args.get("anteriores") == "1"
+
+    parcelas = conn.execute(
+        """
+        SELECT l.data, l.data_compra, l.descricao, l.valor_centavos,
+               l.parcela_numero, l.parcela_total, l.compra_id, c.nome AS categoria
+        FROM lancamentos l
+        JOIN compras_cartao cc ON cc.id = l.compra_id
+        JOIN categorias c ON c.id = l.categoria_id
+        WHERE cc.cartao_id = ? AND (? OR l.data >= ?)
+        ORDER BY l.data, l.data_compra, l.id
+        """,
+        (cartao_id, mostrar_anteriores, inicio_mes),
+    ).fetchall()
+    qtd_anteriores = conn.execute(
+        """
+        SELECT COUNT(DISTINCT l.data) FROM lancamentos l
+        JOIN compras_cartao cc ON cc.id = l.compra_id
+        WHERE cc.cartao_id = ? AND l.data < ?
+        """,
+        (cartao_id, inicio_mes),
+    ).fetchone()[0]
+    usado = limite_usado(conn, cartao_id, hoje)
+    conn.close()
+
+    # Agrupa as parcelas por fatura (todas as parcelas de uma fatura têm a mesma data de vencimento)
+    faturas = {}
+    for parcela in parcelas:
+        if parcela["data"] not in faturas:
+            vencimento = date.fromisoformat(parcela["data"])
+            faturas[parcela["data"]] = {
+                "vencimento": parcela["data"],
+                "fechamento": data_fechamento(
+                    cartao["dia_fechamento"], cartao["dia_vencimento"], vencimento.year, vencimento.month
+                ).isoformat(),
+                "situacao": situacao_fatura(
+                    vencimento, cartao["dia_fechamento"], cartao["dia_vencimento"], hoje
+                ),
+                "itens": [],
+                "total": 0,
+            }
+        faturas[parcela["data"]]["itens"].append(parcela)
+        faturas[parcela["data"]]["total"] += parcela["valor_centavos"]
+
+    limite = cartao["limite_centavos"]
+    return render_template(
+        "cartao_faturas.html",
+        cartao=cartao,
+        faturas=list(faturas.values()),
+        usado=usado,
+        disponivel=(limite - usado) if limite else None,
+        mostrar_anteriores=mostrar_anteriores,
+        qtd_anteriores=qtd_anteriores,
     )
 
 

@@ -49,6 +49,7 @@
                         {{ cartao["limite_centavos"] | moeda if cartao["limite_centavos"] else "—" }}
                     </td>
                     <td class="num">
+                        <a class="acao" href="{{ url_for('faturas_cartao', cartao_id=cartao['id']) }}">Faturas</a>
                         {% if cartao["ativo"] %}
                         <a class="acao" href="{{ url_for('nova_compra', cartao_id=cartao['id']) }}">Lançar compra</a>
                         {% endif %}

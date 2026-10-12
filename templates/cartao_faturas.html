@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block titulo %}Faturas — {{ cartao["nome"] }}{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <div>
+            <h1>{{ cartao["nome"] }}</h1>
+            <p class="subtitulo">
+                {{ cartao["titular"] }} · fecha dia {{ cartao["dia_fechamento"] }} · vence dia {{ cartao["dia_vencimento"] }}
+            </p>
+        </div>
+        {% if cartao["ativo"] %}
+        <a class="botao botao-primario" href="{{ url_for('nova_compra', cartao_id=cartao['id']) }}">+ Compra neste cartão</a>
+        {% endif %}
+    </div>
+
+    <div class="cartoes">
+        <div class="cartao">
+            <p class="rotulo">Limite usado</p>
+            <p class="valor despesa">{{ usado | moeda }}</p>
+            <p class="pct">Parcelas que ainda vão vencer</p>
+        </div>
+        <div class="cartao">
+            <p class="rotulo">Limite</p>
+            <p class="valor">{{ cartao["limite_centavos"] | moeda if cartao["limite_centavos"] else "—" }}</p>
+        </div>
+        <div class="cartao">
+            <p class="rotulo">Disponível</p>
+            <p class="valor {{ 'receita' if disponivel is not none and disponivel >= 0 else 'despesa' }}">
+                {{ disponivel | moeda if disponivel is not none else "—" }}
+            </p>
+            {% if disponivel is not none and cartao["limite_centavos"] %}
+            {% set pct_usado = [usado * 100 / cartao["limite_centavos"], 100] | min %}
+            <div class="barra"><span style="width: {{ '%.1f' | format(pct_usado) }}%;"></span></div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if qtd_anteriores and not mostrar_anteriores %}
+    <p><a href="{{ url_for('faturas_cartao', cartao_id=cartao['id'], anteriores=1) }}">Ver também {{ qtd_anteriores }} fatura(s) anterior(es)</a></p>
+    {% elif mostrar_anteriores %}
+    <p><a href="{{ url_for('faturas_cartao', cartao_id=cartao['id']) }}">Esconder faturas anteriores</a></p>
+    {% endif %}
+
+    {% for fatura in faturas %}
+    <section class="painel fatura fatura-{{ fatura['situacao'] }}">
+        <div class="fatura-topo">
+            <div>
+                <h2>Fatura de {{ fatura["vencimento"] | mes_ano }}</h2>
+                <p class="subtitulo">
+                    {% if fatura["situacao"] == "futura" %}
+                    <span class="selo selo-futura">Futura</span> parcelas já comprometidas · vence em {{ fatura["vencimento"] | data_br }}
+                    {% elif fatura["situacao"] == "aberta" %}
+                    <span class="selo selo-aberta">Aberta</span> fecha em {{ fatura["fechamento"] | data_br }} · vence em {{ fatura["vencimento"] | data_br }}
+                    {% elif fatura["situacao"] == "fechada" %}
+                    <span class="selo selo-fechada">Fechada</span> vence em {{ fatura["vencimento"] | data_br }}
+                    {% else %}
+                    <span class="selo selo-vencida">Vencida</span> venceu em {{ fatura["vencimento"] | data_br }}
+                    {% endif %}
+                </p>
+            </div>
+            <p class="valor despesa fatura-total">{{ fatura["total"] | moeda }}</p>
+        </div>
+
+        <div class="tabela-rolagem">
+            <table>
+                <tbody>
+                    {% for item in fatura["itens"] %}
+                    <tr>
+                        <td class="valor">{{ item["data_compra"] | data_br }}</td>
+                        <td>
+                            <a href="{{ url_for('ver_compra', compra_id=item['compra_id']) }}">{{ item["descricao"] }}</a>
+                            {% if item["parcela_total"] > 1 %}({{ item["parcela_numero"] }}/{{ item["parcela_total"] }}){% endif %}
+                        </td>
+                        <td>{{ item["categoria"] }}</td>
+                        <td class="num valor">{{ item["valor_centavos"] | moeda }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% else %}
+    <p class="vazio">
+        Nenhuma compra nas faturas deste cartão a partir deste mês.<br>
+        {% if cartao["ativo"] %}<a href="{{ url_for('nova_compra', cartao_id=cartao['id']) }}">Lançar uma compra</a>{% endif %}
+    </p>
+    {% endfor %}
+
+    <p><a href="{{ url_for('cartoes') }}">← Voltar para os cartões</a></p>
+{% endblock %}

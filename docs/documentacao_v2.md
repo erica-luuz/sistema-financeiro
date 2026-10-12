@@ -411,6 +411,11 @@ CREATE TABLE orcamentos (
 
 ## Histórico de revisões
 
+### v2.2 — 12/10/2026
+- Situação de cada fatura: **futura** (só parcelas já comprometidas), **aberta** (recebendo as compras de hoje), **fechada** (aguardando vencimento), **vencida**.
+- Dashboard: aviso das compras no cartão feitas no período (não entram no saldo) e quadro **"Próximas faturas"** de cada cartão ativo.
+- Limite usado = parcelas com vencimento a partir de hoje (aproximação: o sistema não registra o pagamento da fatura).
+
 ### v2.1 — 12/10/2026
 - Migrações separadas por etapa: 002 só cartões, 003 compras no cartão; recorrências viram 004 e orçamentos 005.
 - Cartões ganham **titular** (a casa tem cartões da Érica e do Heberton); unicidade passa a ser nome + titular.

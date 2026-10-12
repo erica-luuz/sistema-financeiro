@@ -43,6 +43,39 @@
         </div>
     </div>
 
+    {% if compras_cartao["qtd"] %}
+    <p class="aviso">
+        Compras no cartão feitas neste período: <strong class="valor">{{ compras_cartao["total"] | moeda }}</strong>
+        ({{ compras_cartao["qtd"] }} compra(s)). Elas não entram no saldo acima: cada parcela conta no mês da fatura.
+        <a href="{{ url_for('cartoes') }}">Ver faturas</a>
+    </p>
+    {% endif %}
+
+    {% if proximas_faturas %}
+    <section class="painel">
+        <h2>Próximas faturas</h2>
+        <div class="tabela-rolagem">
+            <table>
+                <tbody>
+                    {% for item in proximas_faturas %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('faturas_cartao', cartao_id=item['cartao']['id']) }}">{{ item["cartao"]["nome"] }}</a><br>
+                            <span class="pct">{{ item["cartao"]["titular"] }}</span>
+                        </td>
+                        <td>
+                            <span class="selo selo-{{ item['situacao'] }}">{{ item["situacao"] | capitalize }}</span><br>
+                            <span class="pct">vence em {{ item["vencimento"] | data_br }}</span>
+                        </td>
+                        <td class="num valor despesa">{{ item["total"] | moeda }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
     <div class="duas-colunas">
         <section class="painel">
             <h2>Para onde foi o dinheiro</h2>

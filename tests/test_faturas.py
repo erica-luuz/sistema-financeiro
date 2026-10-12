@@ -11,6 +11,8 @@ from faturas import (
     data_fechamento,
     dividir_parcelas,
     gerar_parcelas,
+    proximo_vencimento,
+    situacao_fatura,
     somar_meses,
     vencimento_da_fatura,
 )
@@ -64,6 +66,33 @@ def test_fatura_cartao_fecha_3_vence_10(compra, vencimento):
 ])
 def test_fatura_cartao_fecha_25_vence_5(compra, vencimento):
     assert vencimento_da_fatura(compra, 25, 5) == vencimento
+
+
+# ---------- próximo vencimento e situação da fatura ----------
+
+@pytest.mark.parametrize("hoje, vencimento", [
+    (date(2026, 10, 12), date(2026, 11, 10)),   # o dia 10 deste mês já passou
+    (date(2026, 10, 10), date(2026, 10, 10)),   # vence hoje: ainda conta
+    (date(2026, 10, 2), date(2026, 10, 10)),
+    (date(2026, 12, 20), date(2027, 1, 10)),    # virada de ano
+])
+def test_proximo_vencimento(hoje, vencimento):
+    assert proximo_vencimento(hoje, 10) == vencimento
+
+
+# Fatura que vence em 10/11/2026 num cartão que fecha dia 3 (fecha em 03/11; a anterior fecha em 03/10)
+@pytest.mark.parametrize("hoje, situacao", [
+    (date(2026, 9, 20), "futura"),     # a fatura de outubro ainda está aberta
+    (date(2026, 10, 2), "futura"),
+    (date(2026, 10, 3), "aberta"),     # a de outubro fechou: agora as compras vêm para esta
+    (date(2026, 10, 12), "aberta"),
+    (date(2026, 11, 2), "aberta"),
+    (date(2026, 11, 3), "fechada"),    # no dia do fechamento já fechou
+    (date(2026, 11, 10), "fechada"),   # vence hoje
+    (date(2026, 11, 11), "vencida"),
+])
+def test_situacao_fatura(hoje, situacao):
+    assert situacao_fatura(date(2026, 11, 10), 3, 10, hoje) == situacao
 
 
 # ---------- divisão das parcelas ----------

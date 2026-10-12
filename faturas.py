@@ -38,6 +38,35 @@ def vencimento_da_fatura(data_compra, dia_fechamento, dia_vencimento):
         ano, mes = somar_meses(ano, mes, 1)
 
 
+def proximo_vencimento(hoje, dia_vencimento):
+    """Primeira data de vencimento a partir de hoje (inclusive). Ex.: hoje 12/10, vence dia 10 → 10/11."""
+    vencimento = date(hoje.year, hoje.month, dia_vencimento)
+    if vencimento < hoje:
+        ano, mes = somar_meses(hoje.year, hoje.month, 1)
+        vencimento = date(ano, mes, dia_vencimento)
+    return vencimento
+
+
+def situacao_fatura(vencimento, dia_fechamento, dia_vencimento, hoje):
+    """Situação da fatura em relação a hoje:
+
+    'futura'  → a fatura anterior ainda não fechou; esta só tem parcelas de compras antigas
+    'aberta'  → é a fatura que está recebendo as compras de hoje
+    'fechada' → já fechou, aguardando o vencimento
+    'vencida' → o vencimento já passou
+    """
+    fechamento = data_fechamento(dia_fechamento, dia_vencimento, vencimento.year, vencimento.month)
+    ano_anterior, mes_anterior = somar_meses(vencimento.year, vencimento.month, -1)
+    fechamento_anterior = data_fechamento(dia_fechamento, dia_vencimento, ano_anterior, mes_anterior)
+    if hoje < fechamento_anterior:
+        return "futura"
+    if hoje < fechamento:
+        return "aberta"
+    if hoje <= vencimento:
+        return "fechada"
+    return "vencida"
+
+
 def dividir_parcelas(total_centavos, quantidade):
     """Divide em centavos inteiros; a sobra vai na 1ª parcela. 100000 em 3 → [33334, 33333, 33333]."""
     base, sobra = divmod(total_centavos, quantidade)   # divmod(100000, 3) → (33333, 1)
