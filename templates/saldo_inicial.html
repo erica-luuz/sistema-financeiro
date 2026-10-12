@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block titulo %}Saldo em conta{% endblock %}
+
+{% block conteudo %}
+    <div class="caixa-login">
+        <h1>Saldo em conta</h1>
+        <p class="subtitulo">
+            Informe quanto havia na conta da casa num dia. A partir dele, o sistema soma as
+            receitas e desconta as despesas para mostrar quanto vocês têm.
+        </p>
+
+        {% if erro %}
+        <p class="alerta">{{ erro }}</p>
+        {% endif %}
+
+        <form method="post" class="painel">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="campo">
+                <label for="valor">Saldo (R$)</label>
+                <input type="number" id="valor" name="valor" step="0.01" value="{{ valor }}" placeholder="Ex.: 3500,00">
+                <p class="ajuda">Use um valor negativo se a conta estava no vermelho.</p>
+            </div>
+            <div class="campo">
+                <label for="data">No começo do dia</label>
+                <input type="date" id="data" name="data" value="{{ data }}" required>
+                <p class="ajuda">
+                    Dica: use o saldo do extrato de um dia em que os lançamentos daquele dia
+                    em diante já estão no sistema.
+                </p>
+            </div>
+            <div class="botoes-form">
+                <button type="submit" class="botao botao-primario">Salvar saldo</button>
+                <a href="{{ url_for('dashboard.inicio') }}">Cancelar</a>
+            </div>
+            {% if atual %}
+            <p class="ajuda">Para deixar de mostrar o saldo em conta, apague o valor e salve.</p>
+            {% endif %}
+        </form>
+    </div>
+{% endblock %}

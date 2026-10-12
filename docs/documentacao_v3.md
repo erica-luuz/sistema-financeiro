@@ -253,6 +253,19 @@ O menu ganha, à direita: **nome de quem está logado · Trocar senha · Sair**.
 
 ## Histórico de revisões
 
+### v3.2 — 12/10/2026 — melhorias antes de publicar
+- **Fuso horário:** toda "data de hoje" vem de `relogio.py` (America/Sao_Paulo) — o servidor usa UTC.
+- **Código dividido em módulos** (`modulos/`, um Blueprint por assunto; `util.py`); `app.py` só monta o app.
+- **Testes do núcleo** (lançamentos, categorias, cartão, recorrências, orçamento, dashboard, fuso): 138 testes.
+- **Menu recolhível no celular** (atalho "+" e botão "☰ Menu").
+- **Lista de lançamentos:** abre no mês atual ("Ver todos os períodos"), busca por texto, paginação de 50.
+- **Mensagens de confirmação** depois de cada ação.
+- **Editar categoria** (o tipo só muda se ela não estiver em uso).
+- **Repetir lançamento** (formulário preenchido com a data de hoje).
+- **Fatura paga** (migração 007): marcar/desmarcar; pagar libera o limite.
+- **Saldo em conta** (migração 008, tabela `configuracoes`): saldo inicial informado uma vez → saldo hoje,
+  previsto para o fim do período e linha no gráfico (cor validada: verde-água `#1baf7a`).
+
 ### v3.1 — 12/10/2026
 - Etapas 18–20 implementadas: `.env` (com `SESSAO_SOMENTE_HTTPS` para o cookie `Secure` no servidor), login em `auth.py` (Blueprint), CSRF com Flask-WTF em todos os formulários (token vale enquanto a sessão valer; página amigável "A página expirou"), bloqueio de 15 min após 5 senhas erradas (também na troca de senha), página Trocar senha, cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`).
 - Planejada uma etapa extra (20b): "Esqueci minha senha" por e-mail (link assinado, válido por 30 min, uso único), a pedido da Érica. Cadastro na tela de login fica de fora por enquanto.

@@ -42,11 +42,35 @@
         </div>
     </form>
 
+    {# Saldo em conta: "quanto temos" (precisa do saldo inicial, informado uma vez) #}
+    <div class="faixa-saldo-conta painel">
+        {% if saldo_conta %}
+        <div>
+            <p class="rotulo">Saldo em conta hoje</p>
+            <p class="valor {{ 'receita' if (saldo_conta['hoje'] or 0) >= 0 else 'despesa' }}">
+                {{ saldo_conta["hoje"] | moeda if saldo_conta["hoje"] is not none else "—" }}
+            </p>
+        </div>
+        {% if fim != hoje and saldo_conta["fim_periodo"] is not none %}
+        <div>
+            <p class="rotulo">Previsto para {{ fim | data_br }}</p>
+            <p class="valor {{ 'receita' if saldo_conta['fim_periodo'] >= 0 else 'despesa' }}">{{ saldo_conta["fim_periodo"] | moeda }}</p>
+            <p class="pct">com o que já está lançado até lá</p>
+        </div>
+        {% endif %}
+        <a class="acao" href="{{ url_for('dashboard.saldo_inicial') }}">Ajustar saldo</a>
+        {% else %}
+        <p>Quer ver quanto vocês têm na conta, e não só o resultado do mês?</p>
+        <a class="botao" href="{{ url_for('dashboard.saldo_inicial') }}">Informar saldo inicial</a>
+        {% endif %}
+    </div>
+
     <div class="cartoes">
         <div class="cartao cartao-saldo">
             <div class="miolo">
-                <p class="rotulo">Saldo</p>
+                <p class="rotulo">Resultado do período</p>
                 <p class="valor {{ 'receita' if saldo >= 0 else 'despesa' }}">{{ saldo | moeda }}</p>
+                <p class="pct">receitas − despesas</p>
             </div>
         </div>
         <div class="cartao">
@@ -62,7 +86,7 @@
     {% if compras_cartao["qtd"] %}
     <p class="aviso">
         Compras no cartão feitas neste período: <strong class="valor">{{ compras_cartao["total"] | moeda }}</strong>
-        ({{ compras_cartao["qtd"] }} compra(s)). Elas não entram no saldo acima: cada parcela conta no mês da fatura.
+        ({{ compras_cartao["qtd"] }} compra(s)). Elas não entram no resultado acima: cada parcela conta no mês da fatura.
         <a href="{{ url_for('cartoes.listar') }}">Ver faturas</a>
     </p>
     {% endif %}
@@ -148,7 +172,10 @@
             <div class="tabela-rolagem">
                 <table>
                     <thead>
-                        <tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th></tr>
+                        <tr>
+                            <th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Resultado</th>
+                            {% if saldo_conta %}<th class="num">Saldo em conta no fim do mês</th>{% endif %}
+                        </tr>
                     </thead>
                     <tbody>
                         {% for m in evolucao %}
@@ -157,6 +184,9 @@
                             <td class="num valor">{{ m["receitas"] | moeda }}</td>
                             <td class="num valor">{{ m["despesas"] | moeda }}</td>
                             <td class="num valor {{ 'receita' if m['receitas'] >= m['despesas'] else 'despesa' }}">{{ (m["receitas"] - m["despesas"]) | moeda }}</td>
+                            {% if saldo_conta %}
+                            <td class="num valor">{{ m["saldo_conta"] | moeda if m["saldo_conta"] is not none else "—" }}</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -227,6 +257,7 @@
         // Cores validadas para daltonismo: azul (receitas) × laranja (despesas)
         const COR_RECEITAS = "#1d4e9e";
         const COR_DESPESAS = "#eb6834";
+        const COR_SALDO = "#1baf7a";      // verde-água: validado junto com o azul e o laranja
         const TINTA_SECUNDARIA = "#5b6782";
         const GRADE = "#e6ebf2";
 
@@ -245,6 +276,18 @@
                     datasets: [
                         { label: "Receitas", data: evolucao.map((m) => m.receitas), backgroundColor: COR_RECEITAS },
                         { label: "Despesas", data: evolucao.map((m) => m.despesas), backgroundColor: COR_DESPESAS },
+                        // Linha do saldo em conta (só aparece se o saldo inicial foi informado).
+                        // Mesma escala em R$ das colunas: um eixo só.
+                        ...(evolucao.some((m) => m.saldo_conta !== null) ? [{
+                            type: "line",
+                            label: "Saldo em conta",
+                            data: evolucao.map((m) => m.saldo_conta),
+                            borderColor: COR_SALDO,
+                            backgroundColor: COR_SALDO,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            spanGaps: false,     // meses antes do saldo inicial ficam sem ponto
+                        }] : []),
                     ],
                 },
                 options: {
@@ -261,7 +304,7 @@
                                 label: (ctx) => `${ctx.dataset.label}: ${reais(ctx.raw)}`,
                                 footer: (itens) => {
                                     const m = evolucao[itens[0].dataIndex];
-                                    return `Saldo: ${reais(m.receitas - m.despesas)}`;
+                                    return `Resultado do mês: ${reais(m.receitas - m.despesas)}`;
                                 },
                             },
                         },

@@ -474,6 +474,18 @@ tbody tr:hover { background: var(--cal); }
 }
 .pct { color: var(--cinza); font-size: 0.8rem; }
 
+/* Saldo em conta (dashboard) */
+.faixa-saldo-conta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 2rem;
+}
+.faixa-saldo-conta p { margin: 0; }
+.faixa-saldo-conta .rotulo { font-size: 0.85rem; font-weight: 600; color: var(--cinza); }
+.faixa-saldo-conta .valor { font-size: 1.4rem; }
+.faixa-saldo-conta > :last-child { margin-left: auto; }
+
 /* Gráfico do dashboard */
 .grafico { position: relative; height: 260px; }
 .tabela-grafico { margin-top: 0.75rem; }

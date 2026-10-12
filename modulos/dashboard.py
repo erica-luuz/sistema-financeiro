@@ -1,5 +1,7 @@
-"""Dashboard: resumo do período, gráfico, próximas faturas, orçamento e contas a lançar."""
-from flask import Blueprint, render_template, request
+"""Dashboard: resumo do período, saldo em conta, gráfico, próximas faturas, orçamento e contas a lançar."""
+from datetime import date
+
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 import relogio
 from db import get_db_connection
@@ -8,6 +10,7 @@ from util import (
     limites_do_mes,
     mes_atual,
     mes_vizinho,
+    para_centavos,
     periodo_mes_atual,
 )
 from faturas import proximo_vencimento, situacao_fatura
@@ -16,6 +19,82 @@ from modulos.orcamento import buscar_orcamento
 from modulos.recorrencias import recorrencias_pendentes
 
 bp = Blueprint("dashboard", __name__)
+
+
+# ---------- Saldo em conta (saldo acumulado) ----------
+
+def ler_saldo_inicial(conn):
+    """O saldo informado pela casa: {"centavos": 350000, "data": "2026-10-01"}, ou None se não houver."""
+    valores = dict(conn.execute(
+        "SELECT chave, valor FROM configuracoes "
+        "WHERE chave IN ('saldo_inicial_centavos', 'saldo_inicial_data')"
+    ).fetchall())
+    if len(valores) < 2:
+        return None
+    return {"centavos": int(valores["saldo_inicial_centavos"]), "data": valores["saldo_inicial_data"]}
+
+
+def saldo_em(conn, saldo_inicial, data_ate):
+    """Quanto há na conta no FIM do dia data_ate: saldo inicial + receitas − despesas desde a data dele.
+
+    No crédito, a despesa conta no vencimento da fatura (é quando o dinheiro sai da conta).
+    Antes da data do saldo inicial não há como saber: devolve None.
+    """
+    if data_ate < saldo_inicial["data"]:
+        return None
+    movimento = conn.execute(
+        """
+        SELECT COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor_centavos ELSE -valor_centavos END), 0)
+        FROM lancamentos
+        WHERE data >= ? AND data <= ?
+        """,
+        (saldo_inicial["data"], data_ate),
+    ).fetchone()[0]
+    return saldo_inicial["centavos"] + movimento
+
+
+@bp.route("/saldo-inicial", methods=["GET", "POST"])
+def saldo_inicial():
+    conn = get_db_connection()
+    atual = ler_saldo_inicial(conn)
+
+    if request.method == "POST":
+        valor = request.form.get("valor", "").strip()
+        data = request.form.get("data", "").strip()
+        erro = None
+        if not valor:
+            # Campo vazio = deixar de usar o saldo em conta
+            conn.execute("DELETE FROM configuracoes WHERE chave LIKE 'saldo_inicial_%'")
+            conn.commit()
+            conn.close()
+            flash("Saldo inicial removido.", "sucesso")
+            return redirect(url_for("dashboard.inicio"))
+        try:
+            centavos = para_centavos(valor)    # pode ser negativo (conta no vermelho)
+            date.fromisoformat(data)
+        except (ValueError, OverflowError):
+            erro = "Informe um valor (ex.: 3500,00 ou -200,00) e uma data válidos."
+        if erro:
+            conn.close()
+            return render_template("saldo_inicial.html", erro=erro, valor=valor, data=data, atual=atual), 400
+        with conn:
+            for chave, texto in (("saldo_inicial_centavos", str(centavos)), ("saldo_inicial_data", data)):
+                conn.execute(
+                    "INSERT INTO configuracoes (chave, valor) VALUES (?, ?) "
+                    "ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor",
+                    (chave, texto),
+                )
+        conn.close()
+        flash("Saldo inicial salvo.", "sucesso")
+        return redirect(url_for("dashboard.inicio"))
+
+    conn.close()
+    return render_template(
+        "saldo_inicial.html",
+        atual=atual,
+        valor=f"{atual['centavos'] / 100:.2f}" if atual else "",
+        data=atual["data"] if atual else relogio.hoje().isoformat(),
+    )
 
 
 @bp.route("/")
@@ -118,6 +197,16 @@ def inicio():
             (f"{meses_grafico[0]}-01", limites_do_mes(ultimo_mes)[1]),
         )
     }
+    # Saldo em conta: hoje e no fim do período (só se o saldo inicial foi informado)
+    inicial = ler_saldo_inicial(conn)
+    saldo_conta = None
+    if inicial:
+        saldo_conta = {
+            "hoje": saldo_em(conn, inicial, hoje.isoformat()),
+            "fim_periodo": saldo_em(conn, inicial, fim),
+            "inicial": inicial,
+        }
+
     # Meses sem lançamentos entram com zero (senão sumiriam do gráfico)
     evolucao = [
         {
@@ -125,6 +214,8 @@ def inicio():
             "rotulo": MESES[int(mes[5:]) - 1][:3] + "/" + mes[2:4],   # 'out/26'
             "receitas": por_mes[mes]["receitas"] if mes in por_mes else 0,
             "despesas": por_mes[mes]["despesas"] if mes in por_mes else 0,
+            # Saldo em conta no último dia do mês (None antes da data do saldo inicial)
+            "saldo_conta": saldo_em(conn, inicial, limites_do_mes(mes)[1]) if inicial else None,
         }
         for mes in meses_grafico
     ]
@@ -142,6 +233,8 @@ def inicio():
         mes_orcamento=mes_orcamento,
         orcamento_itens=orcamento_itens,
         evolucao=evolucao,
+        saldo_conta=saldo_conta,
+        hoje=hoje.isoformat(),
         inicio=inicio,
         fim=fim,
         receitas=totais["receitas"],
