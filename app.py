@@ -242,6 +242,34 @@ def dashboard():
     # Contas recorrentes do mês atual que ainda não foram lançadas
     pendentes = recorrencias_pendentes(conn, mes_atual())
 
+    # Evolução: receitas × despesas dos 6 meses que terminam no mês do fim do período
+    ultimo_mes = fim[:7]
+    meses_grafico = [mes_vizinho(ultimo_mes, -i) for i in range(5, -1, -1)]   # do mais antigo ao atual
+    por_mes = {
+        linha["mes"]: linha
+        for linha in conn.execute(
+            """
+            SELECT substr(data, 1, 7) AS mes,   -- '2026-10-15' → '2026-10'
+                   COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor_centavos END), 0) AS receitas,
+                   COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor_centavos END), 0) AS despesas
+            FROM lancamentos
+            WHERE data BETWEEN ? AND ?
+            GROUP BY mes
+            """,
+            (f"{meses_grafico[0]}-01", limites_do_mes(ultimo_mes)[1]),
+        )
+    }
+    # Meses sem lançamentos entram com zero (senão sumiriam do gráfico)
+    evolucao = [
+        {
+            "mes": mes,
+            "rotulo": MESES[int(mes[5:]) - 1][:3] + "/" + mes[2:4],   # 'out/26'
+            "receitas": por_mes[mes]["receitas"] if mes in por_mes else 0,
+            "despesas": por_mes[mes]["despesas"] if mes in por_mes else 0,
+        }
+        for mes in meses_grafico
+    ]
+
     # Orçamento do mês em que o período começa (só as categorias orçadas)
     mes_orcamento = inicio[:7]
     orcamento_itens = [i for i in buscar_orcamento(conn, mes_orcamento) if i["previsto"]]
@@ -254,6 +282,7 @@ def dashboard():
         mes_pendentes=mes_atual(),
         mes_orcamento=mes_orcamento,
         orcamento_itens=orcamento_itens,
+        evolucao=evolucao,
         inicio=inicio,
         fim=fim,
         receitas=totais["receitas"],

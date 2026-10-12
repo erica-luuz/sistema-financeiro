@@ -120,6 +120,36 @@
     </section>
     {% endif %}
 
+    <section class="painel">
+        <h2>Receitas × despesas — últimos 6 meses</h2>
+        <div class="grafico">
+            <canvas id="grafico-evolucao"
+                    aria-label="Gráfico de colunas com receitas e despesas dos últimos 6 meses. Os valores estão na tabela abaixo."
+                    role="img"></canvas>
+        </div>
+        {# A mesma informação em tabela: acessível para leitores de tela e para quem prefere números #}
+        <details class="tabela-grafico">
+            <summary>Ver em tabela</summary>
+            <div class="tabela-rolagem">
+                <table>
+                    <thead>
+                        <tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for m in evolucao %}
+                        <tr>
+                            <td>{{ (m["mes"] ~ "-01") | mes_ano }}</td>
+                            <td class="num valor">{{ m["receitas"] | moeda }}</td>
+                            <td class="num valor">{{ m["despesas"] | moeda }}</td>
+                            <td class="num valor {{ 'receita' if m['receitas'] >= m['despesas'] else 'despesa' }}">{{ (m["receitas"] - m["despesas"]) | moeda }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    </section>
+
     <div class="duas-colunas">
         <section class="painel">
             <h2>Para onde foi o dinheiro</h2>
@@ -172,4 +202,66 @@
             {% endif %}
         </section>
     </div>
+
+    <!-- Chart.js: biblioteca de gráficos carregada da internet (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        // Os dados vêm do Python já em JSON (o filtro tojson converte a lista para JavaScript)
+        const evolucao = {{ evolucao | tojson }};
+
+        // Cores validadas para daltonismo: azul (receitas) × laranja (despesas)
+        const COR_RECEITAS = "#1d4e9e";
+        const COR_DESPESAS = "#eb6834";
+        const TINTA_SECUNDARIA = "#5b6782";
+        const GRADE = "#e6ebf2";
+
+        // Centavos → "R$ 1.234,56"
+        const formatoReal = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+        const reais = (centavos) => formatoReal.format(centavos / 100);
+
+        if (window.Chart) {
+            Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+            Chart.defaults.color = TINTA_SECUNDARIA;
+
+            new Chart(document.getElementById("grafico-evolucao"), {
+                type: "bar",
+                data: {
+                    labels: evolucao.map((m) => m.rotulo),
+                    datasets: [
+                        { label: "Receitas", data: evolucao.map((m) => m.receitas), backgroundColor: COR_RECEITAS },
+                        { label: "Despesas", data: evolucao.map((m) => m.despesas), backgroundColor: COR_DESPESAS },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // Colunas finas, cantos arredondados só no topo, espaço entre receitas e despesas
+                    datasets: { bar: { borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: "bottom",
+                                       maxBarThickness: 28, categoryPercentage: 0.6, barPercentage: 0.9 } },
+                    interaction: { mode: "index", intersect: false },   // passar o mouse no mês mostra os dois valores
+                    plugins: {
+                        legend: { position: "top", align: "start", labels: { boxWidth: 12, boxHeight: 12 } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.dataset.label}: ${reais(ctx.raw)}`,
+                                footer: (itens) => {
+                                    const m = evolucao[itens[0].dataIndex];
+                                    return `Saldo: ${reais(m.receitas - m.despesas)}`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: GRADE },
+                            border: { display: false },
+                            ticks: { callback: (valor) => reais(valor).replace(",00", ""), maxTicksLimit: 5 },
+                        },
+                    },
+                },
+            });
+        }
+    </script>
 {% endblock %}

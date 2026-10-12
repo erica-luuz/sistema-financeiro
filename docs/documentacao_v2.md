@@ -411,6 +411,11 @@ CREATE TABLE orcamentos (
 
 ## Histórico de revisões
 
+### v2.5 — 12/10/2026
+- Gráficos: só a evolução **receitas × despesas dos últimos 6 meses** (colunas, Chart.js). A rosca de despesas por categoria foi descartada: as barras horizontais que o dashboard já tem comparam melhor e mostram a mesma informação.
+- Cores do gráfico validadas para daltonismo: azul `#1d4e9e` (receitas) × laranja `#eb6834` (despesas). Verde × vermelho falhou (ΔE 6,1 para deuteranopia).
+- O gráfico tem a mesma informação em tabela ("Ver em tabela") e funciona sem internet só com a tabela.
+
 ### v2.4 — 12/10/2026
 - Orçamento implementado (migração 005): página por mês com navegação, salvar todas as categorias de uma vez (UPSERT `ON CONFLICT ... DO UPDATE`), "Copiar do mês anterior" (`INSERT OR IGNORE ... SELECT`), quadro no dashboard.
 - Categorias mais "apertadas" aparecem primeiro; o resumo mostra também o gasto em categorias sem orçamento.

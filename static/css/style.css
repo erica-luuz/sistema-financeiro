@@ -423,6 +423,11 @@ tbody tr:hover { background: var(--cal); }
 }
 .pct { color: var(--cinza); font-size: 0.8rem; }
 
+/* Gráfico do dashboard */
+.grafico { position: relative; height: 260px; }
+.tabela-grafico { margin-top: 0.75rem; }
+.tabela-grafico summary { cursor: pointer; color: var(--azulejo); font-size: 0.9rem; }
+
 /* Orçamento: a cor da barra mostra a situação */
 .barra-normal span { background: var(--azulejo); }
 .barra-atencao span { background: #e0a32e; }
