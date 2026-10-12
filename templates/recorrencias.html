@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block titulo %}Contas recorrentes{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <div>
+            <h1>Contas recorrentes</h1>
+            <p class="subtitulo">Contas que se repetem todo mês: cadastre uma vez e lance com um clique.</p>
+        </div>
+        <a class="botao" href="{{ url_for('nova_recorrencia') }}">+ Nova conta recorrente</a>
+    </div>
+
+    {% if pendentes %}
+    <div class="aviso aviso-acao">
+        <div>
+            <strong>{{ pendentes | length }} conta(s) de {{ (mes ~ "-01") | mes_ano }}</strong> ainda não foram lançadas.
+        </div>
+        <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}">
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <button type="submit" class="botao botao-primario">Lançar agora</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if recorrencias %}
+    <div class="painel tabela-rolagem">
+        <table>
+            <thead>
+                <tr>
+                    <th>Conta</th>
+                    <th class="num">Dia</th>
+                    <th>Pagamento</th>
+                    <th>Vigência</th>
+                    <th class="num">Valor</th>
+                    <th class="num">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recorrencias %}
+                <tr>
+                    <td>
+                        {{ r["descricao"] }}
+                        {% if not r["ativa"] %}<span class="selo selo-inativo">Pausada</span>{% endif %}
+                        <br><span class="pct">{{ r["categoria"] }} · {{ r["qtd_gerados"] }} lançamento(s) gerado(s)</span>
+                    </td>
+                    <td class="num valor">{{ r["dia_do_mes"] }}</td>
+                    <td>
+                        {{ r["forma_pagamento"] | forma }}
+                        {% if r["cartao"] %}<br><span class="pct">{{ r["cartao"] }} — {{ r["titular"] }}</span>{% endif %}
+                    </td>
+                    <td>
+                        desde {{ (r["mes_inicio"] ~ "-01") | mes_ano }}
+                        {% if r["mes_fim"] %}<br><span class="pct">até {{ (r["mes_fim"] ~ "-01") | mes_ano }}</span>{% endif %}
+                    </td>
+                    <td class="num valor {{ r['tipo'] }}">{{ r["valor_centavos"] | moeda }}</td>
+                    <td class="num">
+                        <a class="acao" href="{{ url_for('editar_recorrencia', recorrencia_id=r['id']) }}">Editar</a>
+                        <form method="post" class="form-inline"
+                              action="{{ url_for('excluir_recorrencia', recorrencia_id=r['id']) }}"
+                              onsubmit="return confirm('Excluir esta conta recorrente? Os lançamentos já gerados continuam.');">
+                            <button type="submit" class="acao acao-perigo">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}" class="painel filtros">
+        <div>
+            <label for="mes">Lançar as contas de outro mês</label>
+            <input type="month" id="mes" name="mes" value="{{ mes }}" required>
+        </div>
+        <div class="botoes-filtro">
+            <button type="submit" class="botao">Lançar</button>
+        </div>
+        <p class="ajuda" style="flex-basis: 100%; margin: 0;">
+            Contas que já foram lançadas no mês escolhido não são lançadas de novo.
+        </p>
+    </form>
+    {% else %}
+    <p class="vazio">
+        Nenhuma conta recorrente cadastrada.<br>
+        <a href="{{ url_for('nova_recorrencia') }}">Cadastrar aluguel, internet, assinaturas...</a>
+    </p>
+    {% endif %}
+{% endblock %}

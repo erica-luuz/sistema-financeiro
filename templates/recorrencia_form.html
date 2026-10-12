@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+    <div class="cabecalho-pagina">
+        <h1>{{ titulo }}</h1>
+    </div>
+
+    {% if erro %}
+    <p class="alerta">{{ erro }}</p>
+    {% endif %}
+
+    <form method="post" class="painel formulario">
+        <div class="campo">
+            <label for="descricao">Descrição</label>
+            <input type="text" id="descricao" name="descricao" value="{{ dados.get('descricao', '') }}"
+                   placeholder="Ex.: Internet, Aluguel, Netflix, Salário" required>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="valor">Valor (R$)</label>
+                <input type="number" id="valor" name="valor" step="0.01" min="0.01"
+                       value="{{ dados.get('valor', '') }}" placeholder="0,00" required>
+            </div>
+            <div class="campo">
+                <label for="dia_do_mes">Dia do mês</label>
+                <input type="number" id="dia_do_mes" name="dia_do_mes" min="1" max="28"
+                       value="{{ dados.get('dia_do_mes', '') }}" placeholder="1 a 28" required>
+            </div>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="tipo">Tipo</label>
+                <select id="tipo" name="tipo" required>
+                    <option value="despesa" {% if dados.get('tipo') == 'despesa' %}selected{% endif %}>Despesa</option>
+                    <option value="receita" {% if dados.get('tipo') == 'receita' %}selected{% endif %}>Receita</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label for="categoria_id">Categoria</label>
+                <select id="categoria_id" name="categoria_id" required>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria['id'] }}"
+                            {% if dados.get('categoria_id') == categoria['id'] | string %}selected{% endif %}>
+                        {{ categoria['nome'] }} ({{ categoria['tipo'] }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="forma_pagamento">Forma de pagamento</label>
+                <select id="forma_pagamento" name="forma_pagamento" required>
+                    {% for chave, texto in FORMAS_PAGAMENTO.items() %}
+                    <option value="{{ chave }}" {% if dados.get('forma_pagamento') == chave %}selected{% endif %}>{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="campo" id="campo-cartao">
+                <label for="cartao_id">Cartão</label>
+                <select id="cartao_id" name="cartao_id">
+                    <option value="">Escolha o cartão</option>
+                    {% for cartao in cartoes %}
+                    <option value="{{ cartao['id'] }}"
+                            {% if dados.get('cartao_id') == cartao['id'] | string %}selected{% endif %}>
+                        {{ cartao['nome'] }} — {{ cartao['titular'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="campos-lado-a-lado">
+            <div class="campo">
+                <label for="mes_inicio">A partir de</label>
+                <input type="month" id="mes_inicio" name="mes_inicio" value="{{ dados.get('mes_inicio', '') }}" required>
+            </div>
+            <div class="campo">
+                <label for="mes_fim">Até (opcional)</label>
+                <input type="month" id="mes_fim" name="mes_fim" value="{{ dados.get('mes_fim', '') }}">
+            </div>
+        </div>
+        <p class="ajuda">Deixe "Até" em branco para contas sem data para acabar. Para um parcelamento fixo (ex.: 10 meses de curso), preencha o último mês.</p>
+
+        {% if recorrencia %}
+        <div class="campo campo-checkbox">
+            <input type="checkbox" id="ativa" name="ativa" value="1"
+                   {% if dados.get('ativa') == '1' %}checked{% endif %}>
+            <label for="ativa">Ativa (desmarque para pausar; os lançamentos já gerados continuam)</label>
+        </div>
+        <p class="ajuda">Alterações valem para os próximos meses. Lançamentos já gerados não mudam — edite-os em Lançamentos.</p>
+        {% endif %}
+
+        <div class="botoes-form">
+            <button type="submit" class="botao botao-primario">
+                {{ "Salvar alterações" if recorrencia else "Cadastrar conta" }}
+            </button>
+            <a href="{{ url_for('recorrencias') }}">Cancelar</a>
+        </div>
+    </form>
+
+    <script>
+        // Mostra o campo "Cartão" só quando a forma de pagamento é crédito
+        const forma = document.getElementById("forma_pagamento");
+        const campoCartao = document.getElementById("campo-cartao");
+        function atualizarCartao() {
+            campoCartao.hidden = forma.value !== "credito";
+        }
+        forma.addEventListener("change", atualizarCartao);
+        atualizarCartao();
+    </script>
+{% endblock %}

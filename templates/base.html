@@ -27,6 +27,8 @@
                    class="{{ 'ativo' if pagina in ['lancamentos', 'editar_lancamento', 'nova_compra', 'ver_compra', 'editar_compra'] }}">Lançamentos</a>
                 <a href="{{ url_for('cartoes') }}"
                    class="{{ 'ativo' if pagina in ['cartoes', 'novo_cartao', 'editar_cartao', 'faturas_cartao'] }}">Cartões</a>
+                <a href="{{ url_for('recorrencias') }}"
+                   class="{{ 'ativo' if pagina in ['recorrencias', 'nova_recorrencia', 'editar_recorrencia'] }}">Recorrentes</a>
                 <a href="{{ url_for('categorias') }}"
                    class="{{ 'ativo' if pagina in ['categorias', 'nova_categoria'] }}">Categorias</a>
                 <a class="botao botao-primario" href="{{ url_for('novo_lancamento') }}">+ Novo lançamento</a>

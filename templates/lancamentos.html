@@ -84,6 +84,9 @@
                         {% if lancamento["parcela_total"] and lancamento["parcela_total"] > 1 %}
                         ({{ lancamento["parcela_numero"] }}/{{ lancamento["parcela_total"] }})
                         {% endif %}
+                        {% if lancamento["recorrencia_id"] %}
+                        <span class="selo selo-futura" title="Gerado por uma conta recorrente">recorrente</span>
+                        {% endif %}
                         {% if lancamento["compra_id"] %}
                         <br><span class="pct">{{ lancamento["cartao"] }} — {{ lancamento["titular"] }} · compra em {{ lancamento["data_compra"] | data_br }}</span>
                         {% endif %}

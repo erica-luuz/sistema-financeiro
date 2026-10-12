@@ -411,6 +411,11 @@ CREATE TABLE orcamentos (
 
 ## Histórico de revisões
 
+### v2.3 — 12/10/2026
+- Recorrências implementadas (migração 004). A verificação "já foi lançada?" é feita com `NOT EXISTS`; o índice único é a segunda garantia.
+- Recorrência no crédito gera uma compra à vista no cartão; editar essa compra mantém a ligação com a recorrência.
+- Editar uma recorrência vale só para os próximos meses; os lançamentos já gerados não mudam.
+
 ### v2.2 — 12/10/2026
 - Situação de cada fatura: **futura** (só parcelas já comprometidas), **aberta** (recebendo as compras de hoje), **fechada** (aguardando vencimento), **vencida**.
 - Dashboard: aviso das compras no cartão feitas no período (não entram no saldo) e quadro **"Próximas faturas"** de cada cartão ativo.

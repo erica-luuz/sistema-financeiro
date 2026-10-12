@@ -10,6 +10,21 @@
         </div>
     </div>
 
+    {% if recorrencias_pendentes %}
+    <div class="aviso aviso-acao">
+        <div>
+            <strong>{{ recorrencias_pendentes | length }} conta(s) recorrente(s) de {{ (mes_pendentes ~ "-01") | mes_ano }}</strong>
+            ainda não foram lançadas:
+            {% for r in recorrencias_pendentes %}{{ r["descricao"] }} ({{ r["valor_centavos"] | moeda }}){{ ", " if not loop.last }}{% endfor %}.
+        </div>
+        <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}">
+            <input type="hidden" name="mes" value="{{ mes_pendentes }}">
+            <input type="hidden" name="voltar_para" value="dashboard">
+            <button type="submit" class="botao botao-primario">Lançar agora</button>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- Filtro de período: usa GET, porque só consulta (não altera dados) -->
     <form method="get" class="painel filtros">
         <div>

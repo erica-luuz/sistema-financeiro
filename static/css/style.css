@@ -200,6 +200,14 @@ a { color: var(--azulejo); }
     margin-bottom: 1.25rem;
 }
 
+.aviso-acao {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+}
+
 .vazio {
     color: var(--cinza);
     text-align: center;
