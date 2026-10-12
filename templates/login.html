@@ -12,6 +12,7 @@
         {% endif %}
 
         <form method="post" class="painel">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="proximo" value="{{ proximo }}">
 
             <div class="campo">

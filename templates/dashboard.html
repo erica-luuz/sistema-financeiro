@@ -18,6 +18,7 @@
             {% for r in recorrencias_pendentes %}{{ r["descricao"] }} ({{ r["valor_centavos"] | moeda }}){{ ", " if not loop.last }}{% endfor %}.
         </div>
         <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes_pendentes }}">
             <input type="hidden" name="voltar_para" value="dashboard">
             <button type="submit" class="botao botao-primario">Lançar agora</button>

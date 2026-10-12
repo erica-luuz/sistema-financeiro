@@ -109,6 +109,7 @@
                         <form method="post" class="form-inline"
                               action="{{ url_for('excluir_lancamento', lancamento_id=lancamento['id']) }}"
                               onsubmit="return confirm('Excluir este lançamento?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
                         </form>
                         {% endif %}

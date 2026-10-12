@@ -8,6 +8,7 @@ from datetime import date
 
 from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, redirect, url_for, abort  # traz a classe Flask do pacote flask
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from db import get_db_connection
 from faturas import (
     data_fechamento,
@@ -36,6 +37,32 @@ if len(SECRET_KEY) < 32:
     )
 # A SECRET_KEY assina o cookie de sessão: é o que impede alguém de forjar um login
 app.config["SECRET_KEY"] = SECRET_KEY
+
+# ---------- Proteções (Versão 3, seções 4.5 e 5) ----------
+# CSRF: todo POST precisa trazer o token secreto do formulário; POST vindo de outro site é recusado
+app.config["WTF_CSRF_TIME_LIMIT"] = None   # o token vale enquanto a sessão valer (página aberta por horas não dá erro)
+csrf = CSRFProtect(app)
+
+# Cookie de sessão: o JavaScript da página não lê (HttpOnly), não vai em formulários de outros
+# sites (SameSite) e, no servidor, só viaja por HTTPS (Secure — ligado pelo .env de produção)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSAO_SOMENTE_HTTPS") == "1"
+
+
+@app.errorhandler(CSRFError)
+def token_invalido(erro):
+    return render_template("erro_csrf.html"), 400
+
+
+@app.after_request
+def cabecalhos_de_seguranca(resposta):
+    """Instruções extras de segurança enviadas ao navegador em toda resposta."""
+    resposta.headers["X-Frame-Options"] = "DENY"               # ninguém coloca o app dentro de outro site (clickjacking)
+    resposta.headers["X-Content-Type-Options"] = "nosniff"     # o navegador não "adivinha" o tipo dos arquivos
+    resposta.headers["Referrer-Policy"] = "same-origin"        # endereços do app não vazam para outros sites
+    return resposta
+
 
 # ---------- Login (Versão 3, seção 4) ----------
 # As rotas de login/logout e a regra "toda página exige login" ficam em auth.py

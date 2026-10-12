@@ -17,6 +17,7 @@
             <strong>{{ pendentes | length }} conta(s) de {{ (mes ~ "-01") | mes_ano }}</strong> ainda não foram lançadas.
         </div>
         <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes }}">
             <button type="submit" class="botao botao-primario">Lançar agora</button>
         </form>
@@ -59,6 +60,7 @@
                         <form method="post" class="form-inline"
                               action="{{ url_for('excluir_recorrencia', recorrencia_id=r['id']) }}"
                               onsubmit="return confirm('Excluir esta conta recorrente? Os lançamentos já gerados continuam.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
                         </form>
                     </td>
@@ -69,6 +71,7 @@
     </div>
 
     <form method="post" action="{{ url_for('gerar_recorrencias_mes') }}" class="painel filtros">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
             <label for="mes">Lançar as contas de outro mês</label>
             <input type="month" id="mes" name="mes" value="{{ mes }}" required>

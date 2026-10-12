@@ -25,6 +25,7 @@
     <div class="aviso aviso-acao">
         <div>Este mês ainda não tem orçamento. Quer usar os mesmos valores de {{ (mes_anterior ~ "-01") | mes_ano }}?</div>
         <form method="post" action="{{ url_for('copiar_orcamento') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes }}">
             <button type="submit" class="botao botao-primario">Copiar do mês anterior</button>
         </form>
@@ -38,6 +39,7 @@
             Quer usar o valor das contas fixas como ponto de partida? Depois é só ajustar.
         </div>
         <form method="post" action="{{ url_for('preencher_orcamento_com_fixas') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="mes" value="{{ mes }}">
             <button type="submit" class="botao">Preencher com as contas fixas</button>
         </form>
@@ -87,6 +89,7 @@
     {% endif %}
 
     <form method="post" class="painel">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="mes" value="{{ mes }}">
         <div class="tabela-rolagem">
             <table class="tabela-orcamento">

@@ -12,6 +12,7 @@
     {% endif %}
 
     <form method="post" class="painel formulario">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="campos-lado-a-lado">
             <div class="campo">
                 <label for="nome">Nome do cartão</label>

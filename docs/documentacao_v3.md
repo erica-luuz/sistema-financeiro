@@ -253,6 +253,10 @@ O menu ganha, à direita: **nome de quem está logado · Trocar senha · Sair**.
 
 ## Histórico de revisões
 
+### v3.1 — 12/10/2026
+- Etapas 18–20 implementadas: `.env` (com `SESSAO_SOMENTE_HTTPS` para o cookie `Secure` no servidor), login em `auth.py` (Blueprint), CSRF com Flask-WTF em todos os formulários (token vale enquanto a sessão valer; página amigável "A página expirou"), bloqueio de 15 min após 5 senhas erradas (também na troca de senha), página Trocar senha, cabeçalhos de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`).
+- Planejada uma etapa extra (20b): "Esqueci minha senha" por e-mail (link assinado, válido por 30 min, uso único), a pedido da Érica. Cadastro na tela de login fica de fora por enquanto.
+
 ### v3.0 — 12/10/2026
 - Planejamento inicial da Versão 3.
 - Decisões: manter SQLite; Érica e Heberton com acesso total; sem registro de autoria; hospedagem no PythonAnywhere.

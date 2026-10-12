@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block titulo %}Página expirada{% endblock %}
+
+{% block conteudo %}
+    <div class="caixa-login">
+        <h1>A página expirou</h1>
+        <p class="alerta">
+            Por segurança, este envio não foi aceito. Isso acontece quando a página ficou aberta
+            de uma sessão anterior (por exemplo, depois de sair e entrar de novo).
+        </p>
+        <p>Volte, recarregue a página e tente de novo. Nada foi alterado.</p>
+        <p><a class="botao" href="{{ url_for('dashboard') }}">Ir para o início</a></p>
+    </div>
+{% endblock %}

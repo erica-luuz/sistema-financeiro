@@ -57,6 +57,7 @@
                         <form method="post" class="form-inline"
                               action="{{ url_for('excluir_cartao', cartao_id=cartao['id']) }}"
                               onsubmit="return confirm('Excluir este cartão?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="acao acao-perigo">Excluir</button>
                         </form>
                     </td>

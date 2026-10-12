@@ -21,6 +21,7 @@
     </p>
     {% else %}
     <form method="post" class="painel formulario">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="campo">
             <label for="cartao_id">Cartão</label>
             <select id="cartao_id" name="cartao_id" required>

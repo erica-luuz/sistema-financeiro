@@ -17,6 +17,7 @@
             <form method="post" class="form-inline"
                   action="{{ url_for('excluir_compra', compra_id=compra['id']) }}"
                   onsubmit="return confirm('Excluir esta compra e todas as {{ compra['parcelas'] }} parcela(s)?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="acao acao-perigo">Excluir compra</button>
             </form>
         </div>

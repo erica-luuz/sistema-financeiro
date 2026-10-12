@@ -8,6 +8,7 @@
 {% endif %}
 
 <form method="post" class="painel formulario">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="campo">
         <label for="descricao">Descrição</label>
         <input type="text" id="descricao" name="descricao" value="{{ dados.get('descricao', '') }}"

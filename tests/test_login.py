@@ -1,27 +1,11 @@
 """Testes do login (Versão 3, seção 4). Rode com:  python -m pytest
 
-Cada teste recebe um banco NOVO e temporário (fixture "cliente"): nunca mexe nos dados reais.
+Cada teste recebe um banco NOVO e temporário (fixture "cliente", em conftest.py):
+nunca mexe nos dados reais.
 """
 import pytest
 
 import db
-
-
-@pytest.fixture
-def cliente(tmp_path, monkeypatch):
-    """Banco temporário com as tabelas e um usuário 'erica', e um navegador de teste."""
-    # monkeypatch troca valores só durante o teste e desfaz tudo no final
-    monkeypatch.setattr(db, "CAMINHO_BANCO", str(tmp_path / "teste.db"))
-    monkeypatch.setattr(db, "PASTA_BACKUPS", tmp_path / "backups")
-    db.init_db()
-
-    from app import app
-    from auth import salvar_usuario
-
-    conn = db.get_db_connection()
-    salvar_usuario(conn, "Érica", "erica", "senha-forte-123")
-    conn.close()
-    return app.test_client()
 
 
 def entrar(cliente, login="erica", senha="senha-forte-123", **extras):

@@ -39,8 +39,10 @@
             </div>
             <div class="menu-usuario">
                 <span>{{ g.usuario["nome"] }}</span>
+                <a class="acao" href="{{ url_for('auth.trocar_senha') }}">Trocar senha</a>
                 {# Sair é POST: um link GET poderia ser disparado sem querer (pré-carregamento, imagem...) #}
                 <form method="post" action="{{ url_for('auth.logout') }}" class="form-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="acao">Sair</button>
                 </form>
             </div>
@@ -49,6 +51,10 @@
     </header>
 
     <main class="conteudo">
+        {# Mensagens "flash": aparecem uma vez, depois de uma ação (ex.: "Senha alterada") #}
+        {% for categoria, mensagem in get_flashed_messages(with_categories=true) %}
+        <p class="mensagem-{{ categoria }}" role="status">{{ mensagem }}</p>
+        {% endfor %}
         {% block conteudo %}{% endblock %}
     </main>
 </body>
