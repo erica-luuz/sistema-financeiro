@@ -98,6 +98,19 @@ def test_excluir_por_get_nao_funciona(logado, banco):
     assert len(lancamentos(banco)) == 1
 
 
+def test_repetir_preenche_o_formulario_com_a_data_de_hoje(logado, banco, monkeypatch):
+    from datetime import datetime
+    import relogio
+    monkeypatch.setattr(relogio, "agora", lambda: datetime(2026, 11, 3, 10, 0, tzinfo=relogio.FUSO))
+    novo(logado, banco, descricao="Padaria", valor="12.50", forma_pagamento="debito", observacao="pão")
+    lid = banco.execute("SELECT id FROM lancamentos").fetchone()[0]
+    pagina = logado.get(f"/lancamentos/novo?repetir={lid}").get_data(as_text=True)
+    assert 'value="Padaria"' in pagina and 'value="12.50"' in pagina
+    assert 'value="2026-11-03"' in pagina                                # data de hoje, não a original
+    assert 'value="debito" selected' in pagina and ">pão</textarea>" in pagina
+    assert len(lancamentos(banco)) == 1                                  # nada é gravado só por abrir
+
+
 def test_editar_inexistente_da_404(logado):
     assert logado.get("/lancamentos/editar/9999").status_code == 404
 

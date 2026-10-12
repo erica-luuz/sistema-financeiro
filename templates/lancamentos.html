@@ -119,6 +119,8 @@
                         <a class="acao" href="{{ url_for('compras.ver', compra_id=lancamento['compra_id']) }}">Ver compra</a>
                         {% else %}
                         <a class="acao" href="{{ url_for('lancamentos.editar', lancamento_id=lancamento['id']) }}">Editar</a>
+                        <a class="acao" href="{{ url_for('lancamentos.novo', repetir=lancamento['id']) }}"
+                           title="Abre um lançamento novo igual a este, com a data de hoje">Repetir</a>
                         <form method="post" class="form-inline"
                               action="{{ url_for('lancamentos.excluir', lancamento_id=lancamento['id']) }}"
                               onsubmit="return confirm('Excluir este lançamento?');">

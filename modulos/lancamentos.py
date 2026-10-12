@@ -276,6 +276,20 @@ def novo():
 
     # GET: formulário vazio, já com a data de hoje e o tipo "despesa"
     dados = {"tipo": "despesa", "data": relogio.hoje().isoformat(), "forma_pagamento": "pix"}
+
+    # "Repetir": /lancamentos/novo?repetir=12 traz o formulário preenchido como o lançamento 12,
+    # mas com a data de hoje. Nada é gravado até a pessoa clicar em Salvar.
+    repetir = request.args.get("repetir", "")
+    if repetir.isdigit():
+        conn = get_db_connection()
+        original = conn.execute(
+            "SELECT * FROM lancamentos WHERE id = ? AND compra_id IS NULL", (repetir,)
+        ).fetchone()
+        conn.close()
+        if original:
+            dados = dados_do_lancamento(original)
+            dados["data"] = relogio.hoje().isoformat()
+
     return render_template("novo_lancamento.html", dados=dados, categorias=buscar_categorias())
 
 
